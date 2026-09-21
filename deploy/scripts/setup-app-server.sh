@@ -30,7 +30,10 @@ ENV_FILE="$BASE/app/config/ai-marketplace.env"
 log()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m[警告] %s\033[0m\n' "$*" >&2; }
 die()  { printf '\033[1;31m[失败] %s\033[0m\n' "$*" >&2; exit 1; }
-genpass() { tr -dc 'A-Za-z0-9' </dev/urandom | head -c "${1:-48}"; }
+# 末尾的 || true 不可省：tr 从 /dev/urandom 无限读取，head 取够字节即关闭管道，
+# tr 会收到 SIGPIPE 返回 141；在 set -o pipefail 下，赋值型命令替换
+# （如 JWT_SECRET=$(genpass 48)）会因此让脚本静默退出。
+genpass() { tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c "${1:-48}" || true; }
 
 [[ $EUID -eq 0 ]] || die "请用 sudo 运行本脚本"
 [[ -d $BUNDLE ]]  || die "找不到部署包目录 $BUNDLE"
@@ -78,7 +81,9 @@ install -m 0640 -o aiuser -g aiuser "$BUNDLE/env/ai-marketplace.env.template" "$
 sed -i "s|__DB_PASSWORD__|$DB_PASSWORD|; s|__REDIS_PASSWORD__|$REDIS_PASSWORD|; s|__JWT_SECRET__|$JWT_SECRET|" "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 chown aiuser:aiuser "$ENV_FILE"
-grep -q '__.*__' "$ENV_FILE" && die "env 文件中仍有未替换的占位符"
+# 只匹配三个真实占位符名；写成 __.*__ 会误伤注释里的普通文字
+LEFTOVER=$(grep -oE '__(DB_PASSWORD|REDIS_PASSWORD|JWT_SECRET)__' "$ENV_FILE" | sort -u | tr '\n' ' ' || true)
+[[ -z ${LEFTOVER// /} ]] || die "env 文件中仍有未替换的占位符: $LEFTOVER"
 echo "    已写入（权限 600，属主 aiuser），口令不回显  ✓"
 
 # ---------------------------------------------------------------------------
@@ -87,20 +92,30 @@ log "4/7 注册 systemd 服务 ai-marketplace"
 install -m 0644 "$BUNDLE/systemd/ai-marketplace.service" /etc/systemd/system/ai-marketplace.service
 systemctl daemon-reload
 systemctl enable ai-marketplace >/dev/null 2>&1
+
+# stdout.log 是 append 模式会累积历史，先记下当前行数作为游标，之后只看新增内容，
+# 否则上一次部署遗留的失败日志会让本次判断出错
+APP_LOG="$BASE/app/logs/stdout.log"
+LOG_MARK=$(wc -l < "$APP_LOG" 2>/dev/null || echo 0)
 systemctl restart ai-marketplace
 
 echo -n "    等待应用启动"
-for i in $(seq 1 60); do
-    if grep -q "Started AiMarketplaceApplication" "$BASE/app/logs/stdout.log" 2>/dev/null; then
-        echo " 完成（${i}s）✓"; break
+STARTED=0
+for i in $(seq 1 90); do
+    NEW=$(tail -n +"$((LOG_MARK + 1))" "$APP_LOG" 2>/dev/null || true)
+    if grep -q "Started AiMarketplaceApplication" <<<"$NEW"; then
+        echo " 完成（${i}s）✓"; STARTED=1; break
     fi
-    systemctl is-active --quiet ai-marketplace || {
-        echo; tail -40 "$BASE/app/logs/stderr.log" "$BASE/app/logs/stdout.log" 2>/dev/null >&2
-        die "应用启动失败，上面是日志"
-    }
+    # 不能只靠 systemctl is-active 判活：Restart=on-failure 会让失败的应用反复重启，
+    # is-active 每次都短暂为 active，必须直接识别 Spring 的启动失败标志
+    if grep -qE "APPLICATION FAILED TO START|Error starting ApplicationContext" <<<"$NEW"; then
+        echo
+        grep -A25 "APPLICATION FAILED TO START" <<<"$NEW" >&2 || tail -50 "$APP_LOG" >&2
+        die "应用启动失败，上面是 Spring 的报错摘要"
+    fi
     echo -n "."; sleep 1
-    [[ $i -eq 60 ]] && { echo; tail -40 "$BASE/app/logs/stdout.log" >&2; die "60 秒内未启动完成"; }
 done
+[[ $STARTED -eq 1 ]] || { echo; tail -50 "$APP_LOG" >&2; die "90 秒内未启动完成，上面是日志"; }
 ss -ltn "sport = :$APP_PORT" | grep -q "$APP_PORT" || die "端口 $APP_PORT 未监听"
 
 # ---------------------------------------------------------------------------

@@ -22,8 +22,10 @@ log()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m[警告] %s\033[0m\n' "$*" >&2; }
 die()  { printf '\033[1;31m[失败] %s\033[0m\n' "$*" >&2; exit 1; }
 
-# 只生成字母数字，避免在 .env / SQL / shell 里出现转义问题
-genpass() { tr -dc 'A-Za-z0-9' </dev/urandom | head -c "${1:-24}"; }
+# 只生成字母数字，避免在 .env / SQL / shell 里出现转义问题。
+# 末尾 || true 不可省：tr 无限读 /dev/urandom，head 取够即关管道，tr 收到 SIGPIPE
+# 返回 141，在 set -o pipefail 下会让赋值型命令替换静默终止脚本。
+genpass() { tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c "${1:-24}" || true; }
 
 [[ $EUID -eq 0 ]] || die "请用 sudo 运行本脚本"
 [[ -d $BUNDLE ]]  || die "找不到部署包目录 $BUNDLE，请先上传 deploy/ 到该路径"
@@ -112,7 +114,7 @@ systemctl is-active --quiet mysql || {
     tail -30 "$BASE/mysql/logs/error.log" >&2 || true
     die "MySQL 启动失败，上面是错误日志"
 }
-ACTUAL_DATADIR=$(mysql -N -B -e "SELECT @@datadir" 2>/dev/null | tr -d '\r')
+ACTUAL_DATADIR=$(mysql -N -B -e "SELECT @@datadir" 2>/dev/null | tr -d '\r' || true)
 [[ "$ACTUAL_DATADIR" == "$BASE/mysql/data/" ]] \
     || die "datadir 未生效，实际为 '$ACTUAL_DATADIR'"
 echo "    datadir = $ACTUAL_DATADIR  ✓"
@@ -126,7 +128,7 @@ log "5/8 导入表结构与初始管理员"
 cp -f "$BUNDLE/sql/01-init-admin.sql" "$BASE/sql/"
 
 mysql < "$BASE/sql/schema.sql"
-TABLES=$(mysql -N -B -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME'")
+TABLES=$(mysql -N -B -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME'" || true)
 [[ "$TABLES" -ge 16 ]] || die "表数量异常，期望 >=16，实际 $TABLES"
 echo "    $DB_NAME 表数量 = $TABLES  ✓"
 
@@ -174,7 +176,7 @@ systemctl is-active --quiet redis-server || {
 }
 redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG \
     || die "Redis 口令认证未通过"
-REDIS_DIR=$(redis-cli -a "$REDIS_PASSWORD" --no-auth-warning config get dir | tail -1 | tr -d '\r')
+REDIS_DIR=$(redis-cli -a "$REDIS_PASSWORD" --no-auth-warning config get dir | tail -1 | tr -d '\r' || true)
 [[ "$REDIS_DIR" == "$BASE/redis/data" ]] || die "Redis dir 未生效，实际为 '$REDIS_DIR'"
 echo "    dir = $REDIS_DIR，PING 正常  ✓"
 
