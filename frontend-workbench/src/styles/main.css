@@ -1,0 +1,81 @@
+/* 全局样式：企业 AI 应用市场 — 工作台 */
+
+:root {
+  /* 主品牌色：深邃靛蓝，传递企业级专业感 */
+  --brand-primary: #3b5bdb;
+  --brand-primary-soft: #4c6ef5;
+  --brand-accent: #14b8a6;
+  --brand-bg: #f5f7fb;
+  --brand-text: #1f2937;
+  --brand-muted: #6b7280;
+  --brand-border: #e5e7eb;
+
+  /* 覆写 Element Plus 主色，统一视觉调性 */
+  --el-color-primary: #3b5bdb;
+  --el-color-primary-light-3: #6b8aef;
+  --el-color-primary-light-5: #8aa3f5;
+  --el-color-primary-light-7: #c2d0fa;
+  --el-color-primary-light-8: #d6e0fc;
+  --el-color-primary-light-9: #eaf0fe;
+  --el-color-primary-dark-2: #2f49b8;
+  --el-border-radius-base: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  color: var(--brand-text);
+  background-color: var(--brand-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--brand-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--brand-primary-soft);
+}
+
+/* 页面通用容器：内容居中、左右留白 */
+.page-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
+}
+
+/* 卡片悬停轻动效 */
+.submission-card {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.submission-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(59, 91, 219, 0.12);
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c7cedd;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

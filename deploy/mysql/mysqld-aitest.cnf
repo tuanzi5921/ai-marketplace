@@ -1,0 +1,37 @@
+# 企业 AI 应用市场 — MySQL 生产配置（数据层 192.168.1.131）
+# 由 /etc/mysql/mysql.conf.d/zzz-aitest.cnf 通过 !include 引入，
+# 文件名以 zzz 开头确保在发行版默认 mysqld.cnf 之后加载，同名选项以本文件为准。
+
+[mysqld]
+user                            = mysql
+port                            = 3306
+# 监听所有网卡，实际访问控制交给 ufw（仅放行应用服务器 192.168.1.132）
+bind-address                    = 0.0.0.0
+mysqlx-bind-address             = 127.0.0.1
+
+# 数据与日志全部收敛到 /aitest
+datadir                         = /aitest/mysql/data
+log_error                       = /aitest/mysql/logs/error.log
+slow_query_log                  = 1
+slow_query_log_file             = /aitest/mysql/logs/slow.log
+long_query_time                 = 2
+
+# socket / pid 保持发行版默认，避免影响本地客户端与 systemd 探测
+socket                          = /var/run/mysqld/mysqld.sock
+pid-file                        = /var/run/mysqld/mysqld.pid
+
+character-set-server            = utf8mb4
+collation-server                = utf8mb4_unicode_ci
+default-time-zone               = '+08:00'
+
+# 8GB 内存机器的保守取值，后续可按实际负载调整
+innodb_buffer_pool_size         = 2G
+max_connections                 = 300
+innodb_file_per_table           = 1
+
+# 作品包上传可达 500MB，需同步放大
+max_allowed_packet              = 512M
+
+[client]
+socket                          = /var/run/mysqld/mysqld.sock
+default-character-set           = utf8mb4

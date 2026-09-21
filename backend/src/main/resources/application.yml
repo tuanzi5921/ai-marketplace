@@ -1,0 +1,83 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  application:
+    name: ai-marketplace
+  profiles:
+    active: dev
+  # 文件上传
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+  # 数据源
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:ai_marketplace}?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PWD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  # Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PWD:}
+      database: 0
+
+# MyBatis-Plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.company.ai.marketplace.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 应用市场 — 自定义配置
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-very-long-secret-key-here-0123456789}
+    expire-hours: 72
+  wecom:
+    corp-id: ${WECOM_CORP_ID:}
+    agent-id: ${WECOM_AGENT_ID:}
+    app-secret: ${WECOM_APP_SECRET:}
+    auth-callback: ${WECOM_AUTH_CALLBACK:http://localhost:5173/oauth/callback}
+    # 群机器人 webhook（v1.1+ 启用）
+    group-webhook: ${WECOM_GROUP_WEBHOOK:}
+  storage:
+    # 复用企业现有存储，此处给出本地存储 fallback 示例；生产请改为 NAS / 对象存储路径
+    base-path: ${STORAGE_BASE_PATH:./storage/files}
+  review:
+    # AI 评审模块（默认关闭，v1 不启用）
+    ai-enabled: ${REVIEW_AI_ENABLED:false}
+    ai-endpoint: ${REVIEW_AI_ENDPOINT:}
+    ai-api-key: ${REVIEW_AI_API_KEY:}
+    # 人工审核 SLA（工作日）
+    manual-sla-days: 3
+
+# 企微消息推送开关（v1 默认关闭，开启前请先注入 corp-id / app-secret）
+wecom:
+  message:
+    enabled: ${WECOM_MESSAGE_ENABLED:false}
+
+# Knife4j 接口文档（/api/doc.html 访问）
+knife4j:
+  enable: true
+  openapi:
+    title: 企业 AI 应用市场 API
+    description: v1 接口说明
+    version: 1.0.0
+    concat: AI-Marketplace Team

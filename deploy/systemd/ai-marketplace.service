@@ -1,0 +1,41 @@
+# 企业 AI 应用市场 — 后端服务 systemd 单元
+# 部署位置：/etc/systemd/system/ai-marketplace.service
+
+[Unit]
+Description=AI Marketplace Backend (Spring Boot 3)
+Documentation=file:///aitest/README.md
+# 依赖数据层可达，网络就绪后再启动
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aiuser
+Group=aiuser
+WorkingDirectory=/aitest/app
+
+# 数据库、Redis、JWT 密钥、企微参数等全部由该文件注入，不进代码库
+EnvironmentFile=/aitest/app/config/ai-marketplace.env
+
+ExecStart=/usr/bin/java \
+    -Xms1g -Xmx4g \
+    -XX:+HeapDumpOnOutOfMemoryError \
+    -XX:HeapDumpPath=/aitest/app/logs/ \
+    -Dfile.encoding=UTF-8 \
+    -Duser.timezone=Asia/Shanghai \
+    -jar /aitest/app/releases/ai-marketplace.jar \
+    --spring.profiles.active=prod
+
+# SIGTERM 正常退出码，避免 systemd 记为失败
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=60
+
+StandardOutput=append:/aitest/app/logs/stdout.log
+StandardError=append:/aitest/app/logs/stderr.log
+
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

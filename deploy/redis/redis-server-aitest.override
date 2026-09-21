@@ -1,0 +1,13 @@
+# systemd drop-in — 让 redis-server 使用 /aitest 下的配置与数据目录
+# 部署位置：/etc/systemd/system/redis-server.service.d/aitest.conf
+#
+# 发行版原 unit 带有 ProtectSystem=strict，整个文件系统只读，
+# 且 ReadWritePaths 仅放行 /var/lib/redis、/var/log/redis、/var/run/redis。
+# 因此必须显式追加 /aitest/redis 为可写路径，否则 Redis 无法持久化也无法写日志。
+
+[Service]
+ReadWritePaths=-/aitest/redis
+
+# 先置空再赋值，才能覆盖原 unit 的 ExecStart
+ExecStart=
+ExecStart=/usr/bin/redis-server /aitest/redis/conf/redis.conf --supervised systemd --daemonize no

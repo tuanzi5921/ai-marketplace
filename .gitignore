@@ -1,0 +1,62 @@
+# ===== 操作系统 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== IDE / 编辑器 =====
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/settings.json
+*.swp
+*.swo
+
+# ===== Java / Maven 后端 =====
+backend/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+replay_pid*
+.mvn/wrapper/maven-wrapper.jar
+
+# ===== 前端 (Vue + Vite) =====
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+frontend-admin/node_modules/
+frontend-admin/dist/
+frontend-workbench/node_modules/
+frontend-workbench/dist/
+
+# 前端构建产物类型声明(自动生成)可保留, 若不想跟踪可取消注释
+# frontend-admin/src/auto-imports.d.ts
+# frontend-admin/src/components.d.ts
+# frontend-workbench/src/auto-imports.d.ts
+# frontend-workbench/src/components.d.ts
+
+# ===== 敏感信息 / 本地环境 =====
+# 真实环境变量文件不提交, 仅保留 .template 模板
+deploy/env/*.env
+!deploy/env/*.env.template
+*.pem
+*.key
+id_rsa*
+secrets/
+
+# ===== 运行时数据 =====
+storage/
+backend/storage/
+*.sqlite
+*.db
+
+# ===== 日志 =====
+logs/
+*.log.*

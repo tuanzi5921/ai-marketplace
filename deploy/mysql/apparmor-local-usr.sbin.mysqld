@@ -1,0 +1,21 @@
+# AppArmor 本地扩展片段 — 允许 mysqld 访问 /aitest 下的数据与日志目录
+# 部署位置：/etc/apparmor.d/local/usr.sbin.mysqld
+# 该路径由发行版主 profile /etc/apparmor.d/usr.sbin.mysqld 末尾的
+#   #include <local/usr.sbin.mysqld>
+# 自动引入，因此无需修改主 profile，也不会被软件包升级覆盖。
+
+# 目录遍历权限
+/aitest/ r,
+/aitest/mysql/ r,
+
+# 数据目录（datadir 已改到此处）
+/aitest/mysql/data/ r,
+/aitest/mysql/data/** rwk,
+
+# 错误日志与慢查询日志
+/aitest/mysql/logs/ rw,
+/aitest/mysql/logs/** rw,
+
+# 配置文件读取
+/aitest/mysql/conf/ r,
+/aitest/mysql/conf/** r,

@@ -1,0 +1,13 @@
+# 生产环境 Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    com.company.ai.marketplace: INFO
+
+# 生产环境关闭接口文档
+knife4j:
+  production: true
