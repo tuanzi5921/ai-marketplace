@@ -1,36 +1,72 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import { loginByCode, redirectToWecomAuth } from '@/api/auth'
+import {
+  loginByCode,
+  localLogin,
+  redirectToWecomAuth,
+  me,
+  type LoginResult
+} from '@/api/auth'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const redirecting = ref(false)
+const submitting = ref(false)
+const form = reactive({ account: '', password: '' })
+
+/** 登录成功后统一写入登录态并跳回来源页 */
+async function applyLoginResult(res: LoginResult) {
+  auth.setToken(res.token)
+  // 后端两条登录路径都会返回 user；缺失时兜底再拉一次 /auth/me
+  auth.setUser(res.user ?? (await me()))
+  ElMessage.success('登录成功')
+  router.replace((route.query.redirect as string) || '/')
+}
+
+// 点击「企微 SSO 登录」→ 取授权地址并跳转
+async function handleWecomLogin() {
+  redirecting.value = true
+  try {
+    await redirectToWecomAuth()
+  } catch {
+    // request 拦截器已提示错误（企微未配置时为业务码 1007）
+    redirecting.value = false
+  }
+}
+
+// 账号口令登录（企微可信域名验证通过前的兜底入口）
+async function handleLocalLogin() {
+  if (!form.account.trim() || !form.password) {
+    ElMessage.warning('请输入账号与口令')
+    return
+  }
+  submitting.value = true
+  try {
+    await applyLoginResult(await localLogin(form.account.trim(), form.password))
+  } catch {
+    // request 拦截器已提示错误
+  } finally {
+    submitting.value = false
+  }
+}
+
 // 企微 SSO 回调携带 code 参数，自动完成登录
 onMounted(async () => {
   const code = route.query.code as string | undefined
-  if (code) {
-    try {
-      const result = await loginByCode(code)
-      auth.setToken(result.token)
-      auth.setUser(result.user)
-      ElMessage.success('登录成功')
-      const redirect = (route.query.redirect as string) || '/'
-      router.replace(redirect)
-    } catch {
-      // request 拦截器已提示错误
-    }
+  if (!code) return
+  try {
+    await applyLoginResult(await loginByCode(code))
+  } catch {
+    // 失败留在登录页，并清掉 URL 上已失效的 code
+    router.replace({ name: 'Login' })
   }
 })
-
-// 点击「企微 SSO 登录」跳转授权页
-function handleWecomLogin() {
-  redirectToWecomAuth()
-}
 </script>
 
 <template>
@@ -54,11 +90,47 @@ function handleWecomLogin() {
           size="large"
           round
           class="sso-btn"
+          :loading="redirecting"
           @click="handleWecomLogin"
         >
-          <el-icon class="sso-icon"><ChatDotRound /></el-icon>
+          <el-icon v-if="!redirecting" class="sso-icon"><ChatDotRound /></el-icon>
           企微 SSO 登录
         </el-button>
+
+        <div class="divider"><span>或使用账号口令</span></div>
+
+        <el-form class="local-form" label-position="top" @submit.prevent="handleLocalLogin">
+          <el-form-item label="账号">
+            <el-input
+              v-model="form.account"
+              placeholder="请输入账号"
+              size="large"
+              autocomplete="username"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="口令">
+            <el-input
+              v-model="form.password"
+              type="password"
+              placeholder="请输入口令"
+              size="large"
+              autocomplete="current-password"
+              show-password
+              @keyup.enter="handleLocalLogin"
+            />
+          </el-form-item>
+          <el-button
+            class="submit-btn"
+            size="large"
+            round
+            :loading="submitting"
+            @click="handleLocalLogin"
+          >
+            登录
+          </el-button>
+        </el-form>
+
         <p class="tip">使用企业微信账号一键登录，开启你的 AI 创作之旅</p>
       </div>
 
@@ -119,6 +191,8 @@ function handleWecomLogin() {
   z-index: 1;
   width: 420px;
   max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   padding: 48px 40px 28px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.96);
@@ -159,6 +233,39 @@ function handleWecomLogin() {
 .sso-icon {
   margin-right: 6px;
 }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: var(--brand-muted);
+  font-size: 12px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--brand-border);
+}
+
+.local-form {
+  text-align: left;
+}
+.local-form :deep(.el-form-item__label) {
+  font-size: 13px;
+  color: var(--brand-muted);
+  padding-bottom: 4px;
+}
+.submit-btn {
+  width: 100%;
+  height: 46px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
 .tip {
   margin: 16px 0 0;
   font-size: 12px;

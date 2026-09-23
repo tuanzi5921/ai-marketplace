@@ -1,6 +1,7 @@
 # 企业 AI 应用市场 — 内网部署手册
 
-部署完成时间：2026-09-21　｜　状态：基础设施与应用进程验收通过，业务功能待补（见 `docs/KNOWN-GAPS.md`）
+部署完成时间：2026-09-21　｜　最近更新：2026-09-23（启用 HTTPS、登录链路打通）
+状态：基础设施、应用进程、登录（账号口令）均已验收通过；企微 SSO 待可信域名配置，运营后台接口待补（见 `docs/KNOWN-GAPS.md`）
 
 ---
 
@@ -8,13 +9,13 @@
 
 ```
                          ┌──────────────────────────────────────┐
-   员工浏览器 ──:80──────►│  App-AI-Test  192.168.1.132 (16G)    │
-   运营浏览器 ──:8081────►│  Ubuntu 24.04 · 应用层                │
+   员工浏览器 ──80/443───►│  App-AI-Test  192.168.1.132 (16G)    │
+   运营浏览器 ─8081/8443─►│  Ubuntu 24.04 · 应用层                │
                          │                                      │
-                         │  Nginx 1.24                          │
-                         │    :80    → /aitest/www/workbench    │
-                         │    :8081  → /aitest/www/admin        │
-                         │    /api/  → 127.0.0.1:8080           │
+                         │  Nginx 1.24（TLS: *.tri-ibiotech.com）│
+                         │    :80/:443    → /aitest/www/workbench│
+                         │    :8081/:8443 → /aitest/www/admin    │
+                         │    /api/       → 127.0.0.1:8080       │
                          │  Spring Boot 3.3.4 (systemd)         │
                          │    ai-marketplace.service :8080      │
                          │    context-path=/api                 │
@@ -30,6 +31,9 @@
                          │  每日 02:00 自动备份，保留 14 天        │
                          └──────────────────────────────────────┘
 ```
+
+> 同一台 132 上还跑着另一个不属于本项目的服务：`/aitest/tri-meeting/`（监听 127.0.0.1:8090，
+> 由 Nginx 8082 反代）。本项目的脚本不会触碰它，改动 Nginx 时注意别覆盖 8082 的站点配置。
 
 **为什么运营后台用独立端口 8081 而不是 README 里写的 `/admin` 子路径：**
 `frontend-admin/vite.config.ts` 没设 `base`，router 用的是无参 `createWebHistory()`，
@@ -78,10 +82,19 @@
 
 | 用途 | 地址 |
 |---|---|
-| 员工工作台 | http://192.168.1.132/ |
-| 运营后台 | http://192.168.1.132:8081/ |
+| 员工工作台 | http://192.168.1.132/ 　https://192.168.1.132/ |
+| 运营后台 | http://192.168.1.132:8081/ 　https://192.168.1.132:8443/ |
 | 后端（内部） | http://192.168.1.132:8080/api |
 | 接口文档 | 生产 profile 下已被 `knife4j.production=true` 关闭 |
+
+> 证书是 `*.tri-ibiotech.com` 通配符证书，**用 IP 访问 HTTPS 会有证书名不匹配告警**，
+> 这是预期行为。等正式域名（如 `ai.tri-ibiotech.com`）解析并回源到本机后，
+> 用域名访问即为绿色小锁。当前 80/8081 的 HTTP 入口未做强制跳转，
+> 原因见 `nginx/workbench.conf` 里的注释（WAF 以 HTTP 回源时强制跳转会形成回环）。
+
+公网侧现状：`121.46.250.190:8081` 已存在到 132:8081 的端口映射（实测可直接访问运营后台），
+而 `:80/:443` 指向的是另一个 nginx（公司官网方向），并非本机。
+若要从公网提供本服务，需网络侧新增到 132 的 443 映射。
 
 ---
 
@@ -100,8 +113,41 @@
 只授予 `ai_marketplace` 库的 DML+DDL 权限，未授予 `GRANT OPTION`、`SUPER` 等。
 MySQL `root` 保持 Ubuntu 默认的 `auth_socket`，只能本机 `sudo mysql` 登录。
 
-初始管理员：`sys_user` 中 `wecom_userid='admin'`、`roles='ADMIN,OPERATOR,USER'`。
-绑定真实企微 userId 的方法见 `sql/01-init-admin.sql` 末尾注释。
+初始管理员：`sys_user` 中 `wecom_userid='admin'`、`account='admin'`、`roles='ADMIN,OPERATOR,USER'`。
+
+**本地登录账号**：`admin`，初始口令在部署时随机生成并已当面告知，
+**请首次登录后立即修改**。当前 `AUTH_LOCAL_LOGIN_ENABLED=true`（企微可信域名未配好前的过渡措施），
+正式环境必须改回 `false`，登录只走企微 SSO。
+
+修改口令的方法——先生成 BCrypt 哈希（开发机需 JDK17 与 hutool-all jar，
+必须用 Hutool 自己的实现，`htpasswd` 产出的 `$2y$` 前缀它的 `checkpw` 不一定认）：
+
+```bash
+cat > /tmp/Hash.java <<'EOF'
+import cn.hutool.crypto.digest.BCrypt;
+public class Hash { public static void main(String[] a){ System.out.print(BCrypt.hashpw(a[0])); } }
+EOF
+HJ=~/.m2/repository/cn/hutool/hutool-all/5.8.32/hutool-all-5.8.32.jar
+javac -cp "$(cygpath -w $HJ)" -d /tmp/h /tmp/Hash.java
+java  -cp "/tmp/h;$(cygpath -w $HJ)" Hash '新口令'      # Windows 下 classpath 用 ; 且需 Windows 路径
+```
+
+再在 131 上写库：
+
+```bash
+sudo mysql -e "UPDATE ai_marketplace.sys_user SET password_hash='<新哈希>' WHERE account='admin';"
+```
+
+**企微凭据**已写入 132 的 env 文件（`WECOM_CORP_ID` / `WECOM_AGENT_ID` / `WECOM_APP_SECRET`），
+实测 `gettoken` 返回 `errcode 0`，说明凭据有效且出口 IP `121.46.250.190` 已在企业可信 IP 白名单内。
+凭据只存在于服务器 env 文件，**不要写进 `application.yml` 或 env 模板**（那等于泄露给所有能读代码的人）。
+
+**TLS 证书**：`/aitest/nginx/cert/tri-ibiotech.com.{pem,key}`（key 权限 600 属主 root）。
+通配符 `*.tri-ibiotech.com`，含完整三级证书链，**到期日 2027-01-07**，续期后需 `systemctl reload nginx`。
+
+**企微域名归属验证文件**：`WW_verify_61IR393ntYc1jRjW.txt` 已放在两个站点根目录，
+Nginx 有专门的 location 放行。注意 `deploy-release.sh` 发版会清空 `www/` 目录，
+**发版后需重新放置该文件**（setup 脚本里也有同样一步）。
 
 ---
 
@@ -185,7 +231,7 @@ gunzip < /aitest/mysql/backup/ai_marketplace_YYYYmmdd_HHMMSS.sql.gz | sudo mysql
 | 机器 | 放行规则 |
 |---|---|
 | 131 | 22/tcp（任意）、3306/tcp（仅 192.168.1.132）、6379/tcp（仅 192.168.1.132） |
-| 132 | 22/tcp、80/tcp、8081/tcp（任意） |
+| 132 | 22/tcp、80/tcp、443/tcp、8081/tcp、8443/tcp（任意） |
 
 两台默认策略均为 `deny (incoming), allow (outgoing)`，已设为开机启用。
 
@@ -263,24 +309,34 @@ sudo shred -u /tmp/.aitest-cred
 
 **已验收通过：**
 
-- 后端进程正常启动（5.1s），`systemctl` 已设开机自启
-- `ai_market@192.168.1.132` 可连 MySQL，16 张表与分类种子数据完整，初始管理员已建
+- 后端进程正常启动（约 5～7s），`systemctl` 已设开机自启
+- `ai_market@192.168.1.132` 可连 MySQL，16 张表与分类种子数据完整
 - Redis 口令认证与读写正常，持久化目录已迁至 `/aitest/redis/data`
-- 用 JWT 密钥签发的合法 token 实测：`/api/submissions`、`/api/rankings/overall`、
-  `/api/competitions/current`、`/api/review/pending` 均返回正确 JSON，角色鉴权生效
-- 两个前端页面经 Nginx 正常返回，`/api` 反代链路一致
+- **登录链路已打通并浏览器实操验证**：运营后台登录后跳 `/dashboard`、
+  工作台登录后跳首页、个人中心 `/me` 正确显示「信息技术部 · ADMIN / OPERATOR / USER」
+- 接口层实测：错误口令与不存在账号均返回 1004（不泄露账号存在性）、
+  无 token 调 `/auth/me` 返回 1001、`/api/submissions` 等分页接口返回正确 JSON
+- HTTPS 已启用（443 工作台 / 8443 后台），证书链完整，Linux 标准 CA 库校验 `Verify return code: 0 (ok)`
+- 企微凭据已写入，服务器实测 `gettoken` 返回 `errcode 0`
 - 每日备份已试跑成功
-- 未登录访问受保护接口正确返回业务码 1001
 
-**尚未闭环（代码问题，非部署问题）：**
+**待办一：企微 SSO 启用（网络与企微后台侧，代码已就绪）**
 
-登录链路前后端不通、运营后台大量接口缺失、分页结构字段名不一致。
-详见 [`docs/KNOWN-GAPS.md`](docs/KNOWN-GAPS.md)，其中含每条的实测证据与修复建议。
+后端 `/api/auth/wecom/redirect` 已能返回正确拼装的授权地址，但 `redirect_uri`
+现在还是内网 IP，企微会拒绝。需要：
 
-**企微 SSO 前置条件：**
+1. 定域名（通配符证书已覆盖，建议 `ai.tri-ibiotech.com`）并加 DNS 解析
+2. 让公网入口把该域名 443 回源到 192.168.1.132
+   （注意 `www.tri-ibiotech.com` 当前走第三方 WAF `ipm0ddpz.waf.zfuwuqi.com`，
+   而 `121.46.250.190:80/443` 上是另一个 nginx，都不是本机）
+3. 企微后台配置**可信域名**并做归属验证——验证文件已就位，
+   实测 `https://<域名>/WW_verify_61IR393ntYc1jRjW.txt` 返回正确内容
+4. 把 env 里的 `WECOM_AUTH_CALLBACK` 改为 `https://<正式域名>/login`
+5. 确认「企业可信IP」含 `121.46.250.190`（gettoken 已成功，说明当前是放行的）
+6. 全部就位后，把 `AUTH_LOCAL_LOGIN_ENABLED` 改回 `false`
 
-服务器出网已验证可达 `qyapi.weixin.qq.com:443`，但启用前还需：
-1. 在 `/aitest/app/config/ai-marketplace.env` 填入 `WECOM_CORP_ID` / `WECOM_AGENT_ID` / `WECOM_APP_SECRET`
-2. 在企微管理后台把访问域名登记为**可信域名**（内网 IP 通常无法通过企微的域名验证，
-   需要准备一个企微服务器可回访验证的域名）
-3. 修完 `KNOWN-GAPS.md` 里 P0 的登录接口
+**待办二：运营后台接口补齐（代码侧）**
+
+后台现在能登录、能进去，但除「大赛配置」外每个菜单都会报「服务端异常」，
+因为对应 Controller 尚未实现。完整清单、实测证据与修复建议见
+[`docs/KNOWN-GAPS.md`](docs/KNOWN-GAPS.md)。

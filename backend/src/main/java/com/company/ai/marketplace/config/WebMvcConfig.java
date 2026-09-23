@@ -31,8 +31,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        // 登录 / SSO
-                        "/auth/**",
+                        // 登录入口逐个放行；不能写成 /auth/**，
+                        // 否则 /auth/me 也会被跳过，ThreadLocalContext 里拿不到登录态
+                        "/auth/wecom/redirect",
+                        "/auth/wecom/login",
+                        "/auth/local/login",
                         // 公开接口
                         "/public/**",
                         // Knife4j

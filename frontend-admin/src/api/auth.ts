@@ -33,6 +33,19 @@ export function me(): Promise<AuthUser> {
 }
 
 /**
+ * 账号密码登录（兜底）
+ * POST /api/auth/local/login
+ * 仅当后端 app.auth.local-login-enabled=true 时可用，未开启会返回业务码 1006
+ */
+export function localLogin(account: string, password: string): Promise<LoginResult> {
+  return http<LoginResult>({
+    url: '/auth/local/login',
+    method: 'post',
+    data: { account, password }
+  })
+}
+
+/**
  * 跳转企微授权页：拉取授权地址并跳转
  * GET /api/auth/wecom/redirect
  */

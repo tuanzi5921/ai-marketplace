@@ -8,6 +8,8 @@ USE ai_marketplace;
 CREATE TABLE IF NOT EXISTS sys_user (
   id          BIGINT       NOT NULL AUTO_INCREMENT,
   wecom_userid VARCHAR(64)  NOT NULL COMMENT '企微 userId（SSO 主键）',
+  account     VARCHAR(64)           COMMENT '本地登录账号（账号密码兜底登录用，多数用户为 NULL）',
+  password_hash VARCHAR(100)        COMMENT 'BCrypt 口令哈希，明文永不入库',
   username    VARCHAR(64)  NOT NULL COMMENT '员工姓名',
   email       VARCHAR(128)          COMMENT '邮箱',
   mobile      VARCHAR(20)           COMMENT '手机号',
@@ -21,6 +23,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
   updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_wecom_userid (wecom_userid),
+  -- MySQL 唯一索引允许多行 NULL，因此未启用本地登录的用户不受影响
+  UNIQUE KEY uk_account (account),
   KEY idx_dept (department)
 ) COMMENT='员工用户表';
 

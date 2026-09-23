@@ -16,11 +16,22 @@ public class AppProperties {
     private WeCom wecom = new WeCom();
     private Storage storage = new Storage();
     private Review review = new Review();
+    private Auth auth = new Auth();
 
     @Data
     public static class Jwt {
         private String secret;
         private int expireHours = 72;
+    }
+
+    @Data
+    public static class Auth {
+        /**
+         * 账号密码登录开关，默认关闭。
+         * <p>仅供企微 SSO 尚未接通（可信域名未验证 / 凭据未下发）的阶段使用，
+         * 正式环境应保持 false，登录只走企微 SSO。
+         */
+        private boolean localLoginEnabled = false;
     }
 
     @Data

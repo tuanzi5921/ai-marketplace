@@ -86,7 +86,7 @@ const avatarText = (name?: string) => (name ? name.charAt(0).toUpperCase() : 'U'
           <div class="profile__name">{{ profile?.displayName || profile?.username || '—' }}</div>
           <div class="profile__sub">
             <span v-if="profile?.department">{{ profile.department }}</span>
-            <span v-if="profile?.role"> · {{ profile.role }}</span>
+            <span v-if="profile?.roles?.length"> · {{ profile.roles.join(' / ') }}</span>
           </div>
         </div>
         <div class="profile__stats">

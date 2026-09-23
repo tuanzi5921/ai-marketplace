@@ -37,10 +37,16 @@ echo "==> 替换前端产物"
 for pair in "frontend-workbench/dist:www/workbench" "frontend-admin/dist:www/admin"; do
     src="${pair%%:*}"; dst="$BASE/${pair##*:}"
     if [[ -d "$TMP/$src" ]]; then
+        # 清空 www 会连带删掉企微域名归属验证文件 WW_verify_*.txt，
+        # 之后企微「可信域名」会因取不到校验文件而静默失效，所以先挪出去再放回
+        saved=$(mktemp -d)
+        find "$dst" -maxdepth 1 -name 'WW_verify_*.txt' -exec cp {} "$saved"/ \; 2>/dev/null || true
         rm -rf "${dst:?}"/*
         cp -r "$TMP/$src"/. "$dst"/
+        cp "$saved"/WW_verify_*.txt "$dst"/ 2>/dev/null || true
+        rm -rf "$saved"
         chmod -R a+rX "$dst"
-        echo "    $dst 已更新"
+        echo "    $dst 已更新（企微验证文件已保留 $(ls "$dst"/WW_verify_*.txt 2>/dev/null | wc -l) 个）"
     else
         echo "    发布包中没有 $src，跳过"
     fi

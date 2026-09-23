@@ -47,6 +47,10 @@ mybatis-plus:
 
 # 应用市场 — 自定义配置
 app:
+  auth:
+    # 账号密码登录兜底开关。企微可信域名验证通过前可临时置 true，
+    # 正式环境必须为 false，登录只走企微 SSO。
+    local-login-enabled: ${AUTH_LOCAL_LOGIN_ENABLED:false}
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-very-long-secret-key-here-0123456789}
     expire-hours: 72

@@ -6,10 +6,12 @@ export interface AuthUser {
   id?: string | number
   username?: string
   displayName?: string
-  avatarUrl?: string
+  avatar?: string
   department?: string
-  role?: string
+  /** 角色集合，与后端 UserVO.roles 一致：USER / OPERATOR / ADMIN / JUDGE / DEPT_HEAD */
+  roles?: string[]
   points?: number
+  enabled?: boolean
 }
 
 // 鉴权状态：token 与用户信息

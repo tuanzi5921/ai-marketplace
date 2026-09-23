@@ -19,8 +19,20 @@ export function me() {
   return request.get<AuthUser>('/auth/me')
 }
 
-// 跳转企微授权页（前端直接跳转）
-export function redirectToWecomAuth() {
-  const base = import.meta.env.VITE_API_BASE || ''
-  window.location.href = `${base}/api/auth/wecom/redirect`
+// 账号密码登录（兜底）：仅当后端 app.auth.local-login-enabled=true 时可用
+export function localLogin(account: string, password: string) {
+  return request.post<LoginResult>('/auth/local/login', { account, password })
+}
+
+// 跳转企微授权页
+// 后端 /auth/wecom/redirect 返回的是 JSON 包络 { data: { redirectUrl } }，
+// 不能直接 window.location 导航过去（那样只会看到一坨 JSON），
+// 必须先 XHR 取回 redirectUrl 再跳转，与运营后台的实现保持一致。
+export async function redirectToWecomAuth() {
+  const res = await request.get<{ redirectUrl: string }>('/auth/wecom/redirect')
+  if (res?.redirectUrl) {
+    window.location.href = res.redirectUrl
+  } else {
+    throw new Error('未获取到企微授权地址')
+  }
 }
