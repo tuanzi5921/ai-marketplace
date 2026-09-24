@@ -6,6 +6,8 @@ import com.company.ai.marketplace.dto.SubmissionCreateDTO;
 import com.company.ai.marketplace.entity.MpSubmission;
 import com.company.ai.marketplace.entity.MpSubmissionArtifact;
 import com.company.ai.marketplace.integration.storage.StorageService;
+import com.company.ai.marketplace.security.LoginUser;
+import com.company.ai.marketplace.security.ThreadLocalContext;
 import com.company.ai.marketplace.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -45,6 +47,15 @@ public class SubmissionController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String domain) {
         return Result.ok(submissionService.listPublished(page, size, type, domain));
+    }
+
+    /** 我的提交（当前登录用户的所有作品，不限状态） */
+    @GetMapping("/mine")
+    public Result<Page<MpSubmission>> mine(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        LoginUser current = ThreadLocalContext.get();
+        return Result.ok(submissionService.listMine(current.getId(), page, size));
     }
 
     /** 作品详情 */
