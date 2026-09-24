@@ -121,6 +121,16 @@ public class SubmissionService {
     }
 
     /**
+     * 查询当前登录用户的作品（不限状态，按 id 倒序，等价于提交时间倒序）。
+     */
+    public Page<MpSubmission> listMine(Long userId, int page, int size) {
+        LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
+        w.eq(MpSubmission::getAuthorId, userId)
+                .orderByDesc(MpSubmission::getId);
+        return submissionMapper.selectPage(new Page<>(page, size), w);
+    }
+
+    /**
      * 查询作品详情。
      */
     public MpSubmission detail(Long id) {
