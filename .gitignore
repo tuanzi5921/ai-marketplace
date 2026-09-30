@@ -36,6 +36,9 @@ frontend-admin/dist/
 frontend-workbench/node_modules/
 frontend-workbench/dist/
 
+# build-release.ps1 产出的发布包暂存目录与 tar.gz（约 46MB，不进版本库）
+dist-release/
+
 # 前端构建产物类型声明(自动生成)可保留, 若不想跟踪可取消注释
 # frontend-admin/src/auto-imports.d.ts
 # frontend-admin/src/components.d.ts

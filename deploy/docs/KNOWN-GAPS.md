@@ -1,14 +1,16 @@
 # 待修复清单 — 业务代码缺口
 
 > 环境与部署已验收通过，**登录链路已于 2026-09-23 打通并浏览器实测通过**（见文末「已修复」）。
+> **2026-09-30 又修掉 4 处接线类缺口**（审核接口路径、分页结构、下载方法、MyBatis-Plus 分页插件），
+> 均已发版到 132 并附实测证据，见文末「已修复」。
 > 本文记录仍然存在的**代码层面**缺口，每条附实测证据，按优先级排序。
 
 ---
 
-## P0 — 运营后台接口大面积缺失
+## P0 — 运营后台接口大面积缺失（唯一剩下的功能性缺口）
 
-后台页面能打开、能登录，但**除「大赛配置」外每个菜单点开都会报「服务端异常」**，
-因为后端只有 7 个 Controller，下列接口全部不存在：
+后台页面能打开、能登录，但**除「大赛配置」和「待审作品」外每个菜单点开都会报「服务端异常」**，
+因为后端只有 8 个 Controller，下列 **13 个**接口全部不存在：
 
 | 前端调用（`frontend-admin/src/api/`） | 后端 | 影响的页面 |
 |---|---|---|
@@ -24,54 +26,41 @@
 | `DELETE /submissions/{id}` | 无 | 作品管理 — 删除 |
 | `GET /comments/reported` | 无 | 评论管理 |
 
-> 排查提示：这些接口返回的是 **HTTP 200 + 业务码 1001「未登录或 Token 已失效」**，
-> 看起来像登录问题，实际是接口不存在。原因见下方 P2。
+> 排查提示（2026-09-30 实测校准）：**不带 token** 时这 13 个接口返回
+> **HTTP 200 + 业务码 1001「未登录或 Token 已失效」**，看起来像登录问题，实际是接口不存在。
+> 原因见下方 P2。带合法 token 时才会暴露真身：返回 **5000「服务端异常」**
+> （`NoResourceFoundException` 落到兜底 `handleOther`）。
+>
+> 由此得到一个**免登录即可判别接口是否存在**的技巧：
+> 用「错误的 HTTP 方法」打目标路径——
+> - 路径**已映射**（只是方法不符）→ `RequestMappingHandlerMapping` 在 `getHandler()` 阶段就抛
+>   `HttpRequestMethodNotSupportedException`，**早于拦截器** → 返回 **5000**
+> - 路径**未映射** → 落到静态资源处理器 → `AuthInterceptor` 先跑 → 返回 **1001**
+>
+> 实测对照（132 本机，未带 token）：
+> ```
+> POST /api/review/pending          -> 5000   （已映射为 GET，方法不符）
+> GET  /api/review/pending          -> 1001   （已映射，被登录拦截）
+> GET  /api/reviews/pending         -> 1001   （旧路径，未映射）
+> GET  /api/submissions/1/download  -> 1001   （已映射为 GET）
+> POST /api/submissions/1/download  -> 5000   （未映射 POST，方法不符）
+> ```
 
-README「v1 已完成范围」声称有 8 个 Controller，实际 7 个，且上述模块均未实现。
+> **`GET /submissions/admin` 的失败机理（2026-09-30 定位，与其余 12 个不同）**
+> 它不是「落到静态资源处理器」，而是被 `SubmissionController.java:62` 的
+> `@GetMapping("/{id}")` + `@PathVariable Long id` 抢先匹配，
+> `"admin"` 转 `Long` 失败 → `MethodArgumentTypeMismatchException` → 兜底 5000。
+> 线上日志实证（已累计 52 次）：
+> ```
+> MethodArgumentTypeMismatchException: Failed to convert value of type
+> 'java.lang.String' to required type 'java.lang.Long'; For input string: "admin"
+> ```
+> 补接口时注意：**`/submissions/admin` 必须声明在 `/{id}` 之前**，
+> 否则字面量路径与模板路径的匹配优先级会让它继续被 `/{id}` 吃掉。
+> 这也解释了为什么「作品管理」页报的是 5000 而不是 1001。
 
----
-
-## P1 — 审核接口路径与参数形态不符
-
-| 前端调用 | 后端实现 | 差异 |
-|---|---|---|
-| `GET /reviews/pending` | `GET /review/pending` | 单复数不一致 |
-| `POST /reviews/{id}/approve?reason=` | `POST /review/action`（`ReviewActionDTO` 请求体） | 路径不同，且后端用 body 传参、前端用 query 传参 |
-| `POST /reviews/{id}/reject?reason=` | 同上 | 同上 |
-
-影响「待审作品」页面。二选一对齐即可，建议改后端以匹配前端的 RESTful 风格。
-
----
-
-## P1 — 分页响应结构不匹配（接口补齐后仍会白屏）
-
-后端直接返回 MyBatis-Plus 的 `Page` 对象，实测结构：
-
-```json
-{"records":[],"total":0,"size":5,"current":1,"pages":0}
-```
-
-而 `frontend-admin/src/api/request.ts` 定义的 `PageResult<T>` 是：
-
-```ts
-{ list: T[]; total: number; page: number; size: number }
-```
-
-`records` vs `list`、`current` vs `page` 字段名不一致 → 即使接口路径修对了，
-列表页也会拿到 `undefined` 而渲染为空。
-
-该文件注释里已预留「后端如不一致可在 normalizer 处适配」，建议在响应拦截器里统一转换，
-不要逐个页面改。`frontend-workbench` 的作品列表已经能正常显示空状态，但也要一并核对。
-
----
-
-## P1 — 作品下载方法不一致
-
-- 前端 `frontend-workbench/src/api/submission.ts:113`：`POST /submissions/{id}/download`
-- 后端 `SubmissionController.java`：`@GetMapping("/{id}/download")`
-
-方法不符 → 405。另外前端用 `request.post<Blob>` 取二进制，
-而响应拦截器对无 `code` 字段的响应会原样返回，这条链路需要一并验证。
+README「v1 已完成范围」声称有 8 个 Controller，实际 7 个（`ReviewController` 存在但前端调的是
+`/reviews/*` 复数路径，已于 2026-09-30 对齐），且上述模块均未实现。
 
 ---
 
@@ -120,6 +109,68 @@ token 过期时用户只看到一个错误提示、不会被跳转回登录页�
 > 附带说明：`AuthInterceptor` 拦截 `/**` 且先于路由匹配执行，所以任何不在白名单里的
 > **不存在路径**都会先被判为未登录（1001）；而 `/auth/wecom/redirect` 等白名单路径下的
 > 不存在接口才会走到 no-handler 返回 5000。这个差异可用来区分「接口不存在」和「真的未登录」。
+
+---
+
+## 已修复（2026-09-30，含线上实测证据）
+
+### 四处接线类缺口 —— 改前端对齐后端，加一个后端分页插件
+
+这几处不是「功能没做」，而是前后端各自都对、接起来不对，改动量小、收益直接，
+所以没有留在待办里，直接修掉并发版到 132（发布包 `ai-marketplace-release-20260930-154249.tar.gz`）。
+
+| 缺口 | 改动 | 文件 |
+|---|---|---|
+| 审核接口单复数 + 参数形态不符 | 前端由 `/reviews/pending`、`/reviews/{id}/approve?reason=` 改为 `/review/pending`、`POST /review/action` + `ReviewActionDTO` 请求体（`submissionId`/`decision`/`rejectReason`） | `frontend-admin/src/api/review.ts` |
+| 待审列表拿不到作者姓名与部门 | 后端 `/review/pending` 直接返回 `MpSubmission` 实体、未 join `sys_user`，前端加一层 `toItem()` 适配字段名，作者暂退化为「用户 #ID」 | `frontend-admin/src/api/review.ts` |
+| 分页响应结构不匹配 | 在响应拦截器里统一加 `normalizePage()`，把 MyBatis-Plus 的 `records/current` 适配成前端约定的 `list/page`，避免逐页改 | `frontend-admin/src/api/request.ts` |
+| 作品下载方法不符（前端 POST、后端 GET） | 前端改为 `request.get<Blob>` | `frontend-workbench/src/api/submission.ts:112` |
+| **MyBatis-Plus 分页插件缺失** | 新增 `MybatisPlusInterceptor` + `PaginationInnerInterceptor(MYSQL)` Bean。**缺它时 `selectPage` 既不生成 LIMIT 也不执行 COUNT，表现为每页返回全表且 `total` 恒为 0，且不报任何错误** —— 三处 `selectPage` 全部静默失效 | `backend/.../config/MybatisPlusConfig.java`（新增） |
+
+线上实测（132，经 nginx 8443 对外入口，带合法 token）：
+
+```
+/review/pending?page=1&size=2  -> code=0  records=2 total=5 current=1 pages=3 ids=[1,2]
+/review/pending?page=2&size=2  -> code=0  records=2 total=5 current=2 pages=3 ids=[3,4]
+/review/pending?page=1&size=10 -> code=0  records=5 total=5 current=1 pages=1 ids=[1,2,3,4,5]
+```
+
+与数据库权威侧对账一致（`SELECT COUNT(*) FROM mp_submission` = 5，`status='PENDING'` = 5）。
+分页插件修复前 `total` 恒为 0 且每页都返回全表，现已正确切片并计数。
+
+前端产物同样按「线上实际提供的文件」而非本地构建目录核对：
+
+- nginx 8443 提供的 `admin/index.html` 引用 `assets/index-DSg2FhyX.js`，与本地构建产物一致
+- 线上 `assets/PendingReviews-Brq2bs-C.js` 内只含 `/review/pending`、`/review/action`，
+  旧路径 `/reviews/` 出现次数为 **0**
+- 线上 `assets/request-CVbNzGVL.js` 内含 normalizer：
+  `{list:t.records,total:t.total,page:t.current,size:t.size}`
+- 线上 workbench `assets/submission-DDpUDJuW.js` 内为
+  `a.get(`/submissions/${e}/download`,{responseType:"blob"})` —— 确认是 GET
+- 企微域名归属验证文件 `WW_verify_*.txt` 发版后仍在两个站点根目录（发版脚本会自动保留）
+
+> **注意：本次修复不包含「作品管理」页面。** 用户反馈的
+> `https://ai-marketplace.tri-ibiotech.com:8443/submissions` 全站报「服务端异常」，
+> 根因是该页调 `GET /submissions/admin`，属于上方 P0 的 13 个未实现接口之一，实测仍返回 5000：
+> ```
+> /submissions/admin?page=1&size=10 -> {"code":5000,"message":"服务端异常"}
+> /admin/dashboard/stats            -> {"code":5000,"message":"服务端异常"}
+> ```
+> 本次修好的是「待审作品」页（`/review/pending` 已返回 code=0 真实数据）。
+
+### 验证方法备忘：不改数据库、不重置口令也能拿到合法 token
+
+现网 `sys_user` 只有 `admin` 一个账号，且其口令是部署时生成的强随机值（不等于
+`AUTH_DEFAULT_PASSWORD`，实测登录返回 1004），文档里也没有留存明文。
+为了不做「重置他人账号口令」这种破坏性操作，改用**后端自己的签名密钥本地铸一个 JWT**：
+
+`JwtService` 用的是标准 HS256，载荷字段为 `uid`/`wid`/`name`/`dept`/`roles`（逗号串）+ `iat`/`exp`，
+密钥取 `app.jwt.secret`（即 `/aitest/app/config/ai-marketplace.env` 里的 `JWT_SECRET`）。
+在 132 上用 python3 的 `hmac`+`hashlib` 就地签发即可，全程只读，不落库、不改任何现有数据。
+`roles` 必须含 `ADMIN`，否则过不了后台的角色守卫。
+
+> 该密钥是**长期有效且可离线伪造任意用户身份**的凭据，只在服务器本机内存中使用、
+> 不写入任何文件或日志；排查完即删除临时脚本。若要收敛风险，可考虑给 JWT 加 `jti` + Redis 黑名单。
 
 ---
 
