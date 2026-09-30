@@ -78,6 +78,13 @@ public class AuthService {
      * 管理员创建用户：邮箱作为账号 + 固定默认口令 + 角色分配，首次登录强制改密。
      */
     public UserVO createUser(CreateUserDTO dto) {
+        // AuthInterceptor 只做登录态解析，角色控制必须在业务层兜底：
+        // 否则任何普通 USER 登录后都能调此接口创建 ADMIN 账号，形成越权提权
+        LoginUser operator = ThreadLocalContext.get();
+        if (operator == null || operator.getRoles() == null
+                || !operator.getRoles().contains("ADMIN")) {
+            throw new BizException(ErrorCode.NO_PERMISSION.getCode(), "仅超管可创建用户");
+        }
         String email = dto.getEmail();
         if (StrUtil.isBlank(email) || !email.contains("@")) {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "邮箱格式不合法");
