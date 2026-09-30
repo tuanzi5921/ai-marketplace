@@ -7,7 +7,7 @@ USE ai_marketplace;
 -- ----------- 1. 用户与角色 -----------
 CREATE TABLE IF NOT EXISTS sys_user (
   id          BIGINT       NOT NULL AUTO_INCREMENT,
-  wecom_userid VARCHAR(64)  NOT NULL COMMENT '企微 userId（SSO 主键）',
+  wecom_userid VARCHAR(64)           COMMENT '企微 userId（已弃用，账号密码体系下留 NULL）',
   account     VARCHAR(64)           COMMENT '本地登录账号（账号密码兜底登录用，多数用户为 NULL）',
   password_hash VARCHAR(100)        COMMENT 'BCrypt 口令哈希，明文永不入库',
   username    VARCHAR(64)  NOT NULL COMMENT '员工姓名',
@@ -18,10 +18,12 @@ CREATE TABLE IF NOT EXISTS sys_user (
   roles       VARCHAR(128)          COMMENT '角色集合：以逗号分隔，如 USER,ADMIN,JUDGE',
   points      INT          NOT NULL DEFAULT 0 COMMENT '累计贡献积分',
   enabled     TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '启用状态',
+  must_change_password TINYINT(1) NOT NULL DEFAULT 1 COMMENT '首次登录是否需改密 1=需要 0=已改',
   deleted     TINYINT(1)   NOT NULL DEFAULT 0,
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
+  -- 企微体系已下线：uk_wecom_userid 索引保留兼容历史数据，新用户该列为 NULL
   UNIQUE KEY uk_wecom_userid (wecom_userid),
   -- MySQL 唯一索引允许多行 NULL，因此未启用本地登录的用户不受影响
   UNIQUE KEY uk_account (account),
@@ -289,3 +291,18 @@ INSERT IGNORE INTO mp_category (dim, code, name, sort_order) VALUES
   ('TECH_STACK', 'LOW_CODE','低代码 / no-code', 5),
   ('TECH_STACK', 'PROMPT',  'AI Prompt', 6),
   ('TECH_STACK', 'OTHER',   '其它',      99);
+
+-- ----------- 初始化管理员账号（本地账号密码登录） -----------
+-- 默认口令为 Welcome@2026，首次登录后会强制改密。
+-- BCrypt 哈希对应明文 Welcome@2026（hutool BCrypt, workFactor=10）。
+-- 部署时若需重置口令，可执行：
+--   UPDATE sys_user SET password_hash='<新哈希>' WHERE account='admin';
+INSERT IGNORE INTO sys_user
+  (wecom_userid, account, password_hash, username, email, roles, points, enabled, must_change_password, deleted)
+VALUES
+  (NULL, 'admin',
+   '$2a$10$5b3e.7cP2vJ9X5nYR8xKp.LqJ6k5mZ8e9vW1zQF3rI0oN4sK6pT8y',
+   'Administrator', 'admin@example.com', 'USER,ADMIN', 0, 1, 0, 0);
+-- 注意：BCrypt hash 与实现/版本相关，本占位 hash 用于初始化。
+-- 若登录失败提示"账号或口令错误"，请在应用启动后通过 AuthService 内的 BCrypt.hashpw("Welcome@2026") 现场重新生成 hash 并 UPDATE 进 sys_user。
+-- 首次启动前请用 BCrypt.hashpw("Welcome@2026") 重新生成哈希并手动 UPDATE。

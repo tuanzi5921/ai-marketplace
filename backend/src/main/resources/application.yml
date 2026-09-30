@@ -48,19 +48,13 @@ mybatis-plus:
 # 应用市场 — 自定义配置
 app:
   auth:
-    # 账号密码登录兜底开关。企微可信域名验证通过前可临时置 true，
-    # 正式环境必须为 false，登录只走企微 SSO。
-    local-login-enabled: ${AUTH_LOCAL_LOGIN_ENABLED:false}
+    # 账号密码登录为正式入口，默认启用
+    local-login-enabled: ${AUTH_LOCAL_LOGIN_ENABLED:true}
+    # 管理员创建用户时使用的默认口令，用户首次登录后强制改密
+    default-password: ${AUTH_DEFAULT_PASSWORD:Welcome@2026}
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-very-long-secret-key-here-0123456789}
     expire-hours: 72
-  wecom:
-    corp-id: ${WECOM_CORP_ID:}
-    agent-id: ${WECOM_AGENT_ID:}
-    app-secret: ${WECOM_APP_SECRET:}
-    auth-callback: ${WECOM_AUTH_CALLBACK:http://localhost:5173/oauth/callback}
-    # 群机器人 webhook（v1.1+ 启用）
-    group-webhook: ${WECOM_GROUP_WEBHOOK:}
   storage:
     # 复用企业现有存储，此处给出本地存储 fallback 示例；生产请改为 NAS / 对象存储路径
     base-path: ${STORAGE_BASE_PATH:./storage/files}
@@ -72,10 +66,9 @@ app:
     # 人工审核 SLA（工作日）
     manual-sla-days: 3
 
-# 企微消息推送开关（v1 默认关闭，开启前请先注入 corp-id / app-secret）
-wecom:
-  message:
-    enabled: ${WECOM_MESSAGE_ENABLED:false}
+# 通用通知开关（v1 默认关闭，开启后仅记录日志）
+notification:
+  enabled: ${NOTIFICATION_ENABLED:false}
 
 # Knife4j 接口文档（/api/doc.html 访问）
 knife4j:

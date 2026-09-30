@@ -32,6 +32,8 @@ public class SysUser {
     private String roles;
     private Integer points;
     private Integer enabled;
+    /** 首次登录是否需改密 1=需要 0=已改 */
+    private Integer mustChangePassword;
     @TableLogic
     private Integer deleted;
     private LocalDateTime createdAt;

@@ -31,4 +31,7 @@ public class UserVO {
     private List<String> roles;
 
     private Boolean enabled;
+
+    /** 首次登录是否需改密 */
+    private Boolean mustChangePassword;
 }

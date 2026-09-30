@@ -1,50 +1,58 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
-import { localLogin, me, type LoginResult } from '@/api/auth'
+import { changePassword } from '@/api/auth'
 
-const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const formRef = ref<FormInstance>()
 const submitting = ref(false)
-const form = reactive({ account: '', password: '' })
+const form = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
-/**
- * 统一的登录成功处理：写入 token 与用户信息，再做运营后台的角色守卫。
- * 若返回的 user.mustChangePassword 为 true，则跳改密页而非 dashboard。
- */
-async function applyLoginResult(res: LoginResult): Promise<boolean> {
-  auth.setToken(res.token)
-  // 后端登录路径会返回 user；兜底再拉一次 /auth/me 以防字段缺失
-  auth.setUser(res.user ?? (await me()))
-
-  if (!auth.canAccessAdmin) {
-    ElMessage.error('当前账号无运营后台访问权限（需 OPERATOR / ADMIN）')
-    auth.logout()
-    return false
-  }
-  ElMessage.success('登录成功')
-  // 首次登录强制改密
-  if (auth.needChangePassword) {
-    router.replace({ name: 'ChangePassword' })
-    return true
-  }
-  router.replace((route.query.redirect as string) || '/dashboard')
-  return true
+const rules: FormRules = {
+  oldPassword: [{ required: true, message: '请输入旧口令', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新口令', trigger: 'blur' },
+    { min: 8, max: 128, message: '新口令长度需在 8-128 之间', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新口令', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value !== form.newPassword) {
+          callback(new Error('两次输入的新口令不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
 }
 
-/** 账号密码登录 */
-async function handleLocalLogin() {
-  if (!form.account.trim() || !form.password) {
-    ElMessage.warning('请输入账号与口令')
+async function handleSubmit() {
+  if (!formRef.value) return
+  try {
+    await formRef.value.validate()
+  } catch {
     return
   }
   submitting.value = true
   try {
-    await applyLoginResult(await localLogin(form.account.trim(), form.password))
+    await changePassword(form.oldPassword, form.newPassword)
+    // 同步清除 mustChangePassword 标志
+    if (auth.user) {
+      auth.setUser({ ...auth.user, mustChangePassword: false })
+    }
+    ElMessage.success('口令修改成功')
+    router.replace('/dashboard')
   } catch {
     // 错误已由响应拦截器提示
   } finally {
@@ -54,65 +62,79 @@ async function handleLocalLogin() {
 </script>
 
 <template>
-  <div class="login-page">
+  <div class="cp-page">
     <div class="ambient ambient-a" />
     <div class="ambient ambient-b" />
 
-    <div class="login-card">
+    <div class="cp-card">
       <div class="brand">
         <div class="brand-mark">AI</div>
         <div class="brand-text">
           <h1>企业 AI 应用市场</h1>
-          <p>运营后台 · Operations Console</p>
+          <p>首次登录 · 修改口令</p>
         </div>
       </div>
 
-      <div class="login-body">
-        <p class="hint">仅限运营 / 超管 / 评委角色访问。</p>
+      <div class="cp-body">
+        <p class="hint">检测到首次登录，请修改初始口令后继续。</p>
 
         <el-form
-          class="local-form"
+          ref="formRef"
+          class="cp-form"
           label-position="top"
-          @submit.prevent="handleLocalLogin"
+          :model="form"
+          :rules="rules"
+          @submit.prevent="handleSubmit"
         >
-          <el-form-item label="账号">
+          <el-form-item label="旧口令" prop="oldPassword">
             <el-input
-              v-model="form.account"
-              placeholder="请输入账号"
-              size="large"
-              autocomplete="username"
-              clearable
-            />
-          </el-form-item>
-          <el-form-item label="口令">
-            <el-input
-              v-model="form.password"
+              v-model="form.oldPassword"
               type="password"
-              placeholder="请输入口令"
+              placeholder="请输入当前口令"
               size="large"
               autocomplete="current-password"
               show-password
-              @keyup.enter="handleLocalLogin"
+            />
+          </el-form-item>
+          <el-form-item label="新口令" prop="newPassword">
+            <el-input
+              v-model="form.newPassword"
+              type="password"
+              placeholder="至少 8 位"
+              size="large"
+              autocomplete="new-password"
+              show-password
+            />
+          </el-form-item>
+          <el-form-item label="确认新口令" prop="confirmPassword">
+            <el-input
+              v-model="form.confirmPassword"
+              type="password"
+              placeholder="再次输入新口令"
+              size="large"
+              autocomplete="new-password"
+              show-password
+              @keyup.enter="handleSubmit"
             />
           </el-form-item>
           <el-button
             class="submit-btn"
             size="large"
             :loading="submitting"
-            @click="handleLocalLogin"
+            @click="handleSubmit"
           >
-            登录
+            提交修改
           </el-button>
         </el-form>
 
-        <p class="footnote muted">登录即表示同意企业 AI 应用市场使用规范</p>
+        <p class="footnote muted">修改成功后即可进入运营后台</p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.login-page {
+.cp-page {
   position: relative;
   height: 100vh;
   display: flex;
@@ -147,7 +169,7 @@ async function handleLocalLogin() {
   opacity: 0.4;
 }
 
-.login-card {
+.cp-card {
   position: relative;
   width: 400px;
   max-width: calc(100vw - 32px);
@@ -196,7 +218,7 @@ async function handleLocalLogin() {
   letter-spacing: 1px;
 }
 
-.login-body {
+.cp-body {
   text-align: center;
 }
 
@@ -207,11 +229,11 @@ async function handleLocalLogin() {
   line-height: 1.6;
 }
 
-.local-form {
+.cp-form {
   text-align: left;
 }
 
-.local-form :deep(.el-form-item__label) {
+.cp-form :deep(.el-form-item__label) {
   font-size: 13px;
   color: #475569;
   padding-bottom: 4px;

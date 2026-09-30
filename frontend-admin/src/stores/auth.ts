@@ -14,6 +14,8 @@ export interface AuthUser {
   points?: number
   roles: UserRole[]
   enabled?: boolean
+  /** 首次登录是否需改密 */
+  mustChangePassword?: boolean
 }
 
 const TOKEN_KEY = 'ai_market_admin_token'
@@ -40,6 +42,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   // —— getters ——
   const isLoggedIn = computed(() => !!token.value && !!user.value)
+
+  /** 是否需要强制改密（首次登录） */
+  const needChangePassword = computed(() => !!user.value?.mustChangePassword)
 
   /** 判断当前用户是否拥有指定角色（传数组为「任一匹配」） */
   function hasRole(role: UserRole | UserRole[]): boolean {
@@ -78,6 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     user,
     isLoggedIn,
+    needChangePassword,
     canAccessAdmin,
     hasRole,
     setToken,

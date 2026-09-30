@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { RefreshLeft, UserFilled, ArrowDown } from '@element-plus/icons-vue'
-import { listUsers, grantRole, enable, disable, type UserItem } from '@/api/user'
+import { onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { RefreshLeft, ArrowDown, Plus } from '@element-plus/icons-vue'
+import { listUsers, grantRole, enable, disable, createUser, type UserItem } from '@/api/user'
 import type { UserRole } from '@/stores/auth'
 
 const loading = ref(false)
@@ -83,6 +83,49 @@ function onPageChange(p: number) {
   load()
 }
 
+// —— 新建用户 ——
+const createDialogVisible = ref(false)
+const createSubmitting = ref(false)
+const createFormRef = ref<FormInstance>()
+const createForm = reactive<{ email: string; roles: UserRole[] }>({
+  email: '',
+  roles: []
+})
+
+const createRules: FormRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式不合法', trigger: 'blur' }
+  ],
+  roles: [{ required: true, type: 'array', message: '至少选择一个角色', trigger: 'change' }]
+}
+
+function openCreateDialog() {
+  createForm.email = ''
+  createForm.roles = []
+  createDialogVisible.value = true
+}
+
+async function handleCreateUser() {
+  if (!createFormRef.value) return
+  try {
+    await createFormRef.value.validate()
+  } catch {
+    return
+  }
+  createSubmitting.value = true
+  try {
+    await createUser({ email: createForm.email.trim(), roles: createForm.roles })
+    ElMessage.success('用户已创建，初始口令为 Welcome@2026')
+    createDialogVisible.value = false
+    load()
+  } catch {
+    /* 错误已提示 */
+  } finally {
+    createSubmitting.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -91,6 +134,7 @@ onMounted(load)
     <div class="toolbar">
       <h2 class="page-title" style="margin: 0">用户管理</h2>
       <div class="spacer" />
+      <el-button type="primary" :icon="Plus" @click="openCreateDialog">新建用户</el-button>
       <el-button :icon="RefreshLeft" @click="load">刷新</el-button>
     </div>
 
@@ -170,11 +214,60 @@ onMounted(load)
         />
       </div>
     </div>
+
+    <!-- 新建用户弹窗 -->
+    <el-dialog v-model="createDialogVisible" title="新建用户" width="480px">
+      <el-form
+        ref="createFormRef"
+        :model="createForm"
+        :rules="createRules"
+        label-position="top"
+      >
+        <el-form-item label="邮箱" prop="email">
+          <el-input
+            v-model="createForm.email"
+            placeholder="作为账号身份"
+            size="default"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="角色" prop="roles">
+          <el-select
+            v-model="createForm.roles"
+            multiple
+            placeholder="至少选择一个角色"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="r in roleOptions"
+              :key="r"
+              :label="r"
+              :value="r"
+            />
+          </el-select>
+        </el-form-item>
+        <p class="create-hint muted">
+          初始密码为 Welcome@2026，用户首次登录后需修改。
+        </p>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="createSubmitting" @click="handleCreateUser">
+          创建
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <style scoped>
 .el-icon--right {
   margin-left: 4px;
+}
+
+.create-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
 }
 </style>

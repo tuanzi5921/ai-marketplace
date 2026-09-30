@@ -14,6 +14,19 @@ export interface UserItem {
 }
 
 /**
+ * 新建用户（管理员）
+ * POST /api/admin/users
+ * 初始口令固定为 Welcome@2026，用户首次登录后强制改密
+ */
+export function createUser(payload: { email: string; roles: UserRole[] }): Promise<UserItem> {
+  return http<UserItem>({
+    url: '/admin/users',
+    method: 'post',
+    data: payload
+  })
+}
+
+/**
  * 用户列表
  * GET /api/admin/users?page=&size=
  */

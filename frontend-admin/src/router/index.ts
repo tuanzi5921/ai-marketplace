@@ -10,6 +10,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true, title: '登录' }
   },
   {
+    path: '/change-password',
+    name: 'ChangePassword',
+    component: () => import('@/views/ChangePassword.vue'),
+    meta: { public: false, title: '修改密码' }
+  },
+  {
     path: '/',
     component: () => import('@/layouts/AdminLayout.vue'),
     redirect: '/dashboard',
@@ -101,6 +107,11 @@ router.beforeEach((to) => {
   // 已登录但无运营后台角色 → 跳登录
   if (!auth.canAccessAdmin) {
     return { name: 'Login' }
+  }
+
+  // 已登录且需强制改密 → 跳改密页（避免循环）
+  if (auth.needChangePassword && to.name !== 'ChangePassword') {
+    return { name: 'ChangePassword' }
   }
 
   return true

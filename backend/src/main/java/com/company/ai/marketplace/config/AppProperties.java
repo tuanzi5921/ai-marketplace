@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 public class AppProperties {
 
     private Jwt jwt = new Jwt();
-    private WeCom wecom = new WeCom();
     private Storage storage = new Storage();
     private Review review = new Review();
     private Auth auth = new Auth();
@@ -27,20 +26,14 @@ public class AppProperties {
     @Data
     public static class Auth {
         /**
-         * 账号密码登录开关，默认关闭。
-         * <p>仅供企微 SSO 尚未接通（可信域名未验证 / 凭据未下发）的阶段使用，
-         * 正式环境应保持 false，登录只走企微 SSO。
+         * 账号密码登录为正式入口，默认启用。
          */
-        private boolean localLoginEnabled = false;
-    }
+        private boolean localLoginEnabled = true;
 
-    @Data
-    public static class WeCom {
-        private String corpId;
-        private String agentId;
-        private String appSecret;
-        private String authCallback;
-        private String groupWebhook;
+        /**
+         * 管理员创建用户时使用的默认口令，用户首次登录后强制改密。
+         */
+        private String defaultPassword = "Welcome@2026";
     }
 
     @Data
