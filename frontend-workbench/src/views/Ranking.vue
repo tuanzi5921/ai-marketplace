@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Trophy } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { overall, byTrack, byCompetition, type RankingItem } from '@/api/ranking'
+import { coverPlaceholderStyle } from '@/utils/cover'
 
 const router = useRouter()
+
+// cover_url 存的可能是网页地址而不是图片，加载失败时退回纯色占位
+const brokenCovers = reactive<Record<string, boolean>>({})
 
 // 赛道列表（可由当前大赛返回，这里给默认值兜底）
 const trackTabs = ref<{ label: string; value: string }[]>([
@@ -118,8 +122,19 @@ onMounted(() => {
               {{ item.rank || '—' }}
             </div>
             <div class="rank-cover">
-              <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.title" />
-              <div v-else class="rank-cover__placeholder">{{ item.title.charAt(0) }}</div>
+              <img
+                v-if="item.coverUrl && !brokenCovers[item.id]"
+                :src="item.coverUrl"
+                :alt="item.title"
+                @error="brokenCovers[item.id] = true"
+              />
+              <div
+                v-else
+                class="rank-cover__placeholder"
+                :style="coverPlaceholderStyle(item.id, item.title)"
+              >
+                {{ item.title.charAt(0) }}
+              </div>
             </div>
             <div class="rank-info">
               <div class="rank-info__title">{{ item.title }}</div>
@@ -155,8 +170,19 @@ onMounted(() => {
           >
             <div class="rank-no" :class="rankClass(item.rank)">{{ item.rank || '—' }}</div>
             <div class="rank-cover">
-              <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.title" />
-              <div v-else class="rank-cover__placeholder">{{ item.title.charAt(0) }}</div>
+              <img
+                v-if="item.coverUrl && !brokenCovers[item.id]"
+                :src="item.coverUrl"
+                :alt="item.title"
+                @error="brokenCovers[item.id] = true"
+              />
+              <div
+                v-else
+                class="rank-cover__placeholder"
+                :style="coverPlaceholderStyle(item.id, item.title)"
+              >
+                {{ item.title.charAt(0) }}
+              </div>
             </div>
             <div class="rank-info">
               <div class="rank-info__title">{{ item.title }}</div>
@@ -299,8 +325,6 @@ onMounted(() => {
   justify-content: center;
   font-size: 24px;
   font-weight: 700;
-  color: #3b5bdb;
-  opacity: 0.5;
 }
 .rank-info {
   flex: 1;
