@@ -1,27 +1,10 @@
 import { http } from './request'
 import type { AuthUser } from '@/stores/auth'
 
-/** 企微 SSO 登录返回（token 必有；部分后端会同时返回用户） */
+/** 登录返回（token 与 user 均必返） */
 export interface LoginResult {
   token: string
-  user?: AuthUser
-}
-
-/** 企微授权跳转信息 */
-export interface WecomRedirect {
-  redirectUrl: string
-}
-
-/**
- * 企微 SSO 登录：使用授权 code 换取 token
- * POST /api/auth/wecom/login?code=xxx
- */
-export function loginByCode(code: string): Promise<LoginResult> {
-  return http<LoginResult>({
-    url: '/auth/wecom/login',
-    method: 'post',
-    params: { code }
-  })
+  user: AuthUser
 }
 
 /**
@@ -33,9 +16,8 @@ export function me(): Promise<AuthUser> {
 }
 
 /**
- * 账号密码登录（兜底）
+ * 账号密码登录（正式入口）
  * POST /api/auth/local/login
- * 仅当后端 app.auth.local-login-enabled=true 时可用，未开启会返回业务码 1006
  */
 export function localLogin(account: string, password: string): Promise<LoginResult> {
   return http<LoginResult>({
@@ -46,12 +28,13 @@ export function localLogin(account: string, password: string): Promise<LoginResu
 }
 
 /**
- * 跳转企微授权页：拉取授权地址并跳转
- * GET /api/auth/wecom/redirect
+ * 修改密码（首次登录强制改密 / 自助改密）
+ * POST /api/auth/change-password
  */
-export async function redirectToWecomAuth(): Promise<void> {
-  const res = await http<WecomRedirect>({ url: '/auth/wecom/redirect', method: 'get' })
-  if (res?.redirectUrl) {
-    window.location.href = res.redirectUrl
-  }
+export function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  return http<void>({
+    url: '/auth/change-password',
+    method: 'post',
+    data: { oldPassword, newPassword }
+  })
 }

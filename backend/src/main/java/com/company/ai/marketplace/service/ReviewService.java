@@ -1,6 +1,5 @@
 package com.company.ai.marketplace.service;
 
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -8,7 +7,6 @@ import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.common.BizException;
 import com.company.ai.marketplace.dto.ReviewActionDTO;
 import com.company.ai.marketplace.entity.*;
-import com.company.ai.marketplace.integration.wecom.WecomClient;
 import com.company.ai.marketplace.mapper.*;
 import com.company.ai.marketplace.security.LoginUser;
 import com.company.ai.marketplace.security.ThreadLocalContext;
@@ -31,7 +29,6 @@ public class ReviewService {
     private final MpSubmissionMapper submissionMapper;
     private final MpReviewLogMapper reviewLogMapper;
     private final SysUserMapper userMapper;
-    private final WecomClient wecomClient;
     private final AuditService auditService;
 
     /**
@@ -72,15 +69,8 @@ public class ReviewService {
         reviewLog.setResultDetail(approved ? "人工审核通过" : "驳回: " + dto.getRejectReason());
         reviewLogMapper.insert(reviewLog);
 
-        // 3. 推送企微个人应用消息给作者
-        SysUser author = userMapper.selectById(sub.getAuthorId());
-        if (author != null && StrUtil.isNotBlank(author.getWecomUserid())) {
-            String content = approved
-                    ? StrUtil.format("【审核通过】您的作品《{}》已发布上架，恭喜！", sub.getTitle())
-                    : StrUtil.format("【审核未通过】您的作品《{}》被驳回，原因：{}。请修改后重新提交。",
-                            sub.getTitle(), dto.getRejectReason());
-            wecomClient.sendTextMessage(author.getWecomUserid(), content);
-        }
+        // 3. 通知渠道已移除（原企微个人应用消息推送）
+        // 若后续接入通知，可在此调用 NotificationService
 
         // 4. 审计
         auditService.log("REVIEW", approved ? "APPROVE" : "REJECT",
