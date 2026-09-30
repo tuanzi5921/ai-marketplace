@@ -14,7 +14,7 @@ export interface ApiResponse<T = unknown> {
   data: T
 }
 
-/** 分页结果（约定字段，后端如不一致可在 normalizer 处适配） */
+/** 分页结果（前端约定字段，由下方 normalizePage 从后端 Page 适配而来） */
 export interface PageResult<T> {
   list: T[]
   total: number
@@ -26,6 +26,22 @@ export interface PageResult<T> {
 export interface PageQuery {
   page?: number
   size?: number
+}
+
+/**
+ * 后端分页返回的是 MyBatis-Plus 的 Page（records/total/current/size），
+ * 与上面的 PageResult 约定不同名，在这里统一适配，避免每个页面各改一遍。
+ */
+function normalizePage(data: unknown): unknown {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) return data
+  const page = data as Record<string, unknown>
+  if (!Array.isArray(page.records) || typeof page.total !== 'number') return data
+  return {
+    list: page.records,
+    total: page.total,
+    page: page.current,
+    size: page.size
+  }
 }
 
 const service: AxiosInstance = axios.create({
@@ -58,7 +74,7 @@ service.interceptors.response.use(
       return response.data
     }
     if (body.code === 0) {
-      return body.data
+      return normalizePage(body.data)
     }
     // 业务错误
     ElMessage.error(body.message || '请求失败')

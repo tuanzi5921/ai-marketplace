@@ -110,7 +110,7 @@ export function submit(form: SubmissionForm) {
 
 // 下载作品
 export function download(id: string | number) {
-  return request.post<Blob>(`/submissions/${id}/download`, undefined, {
+  return request.get<Blob>(`/submissions/${id}/download`, {
     responseType: 'blob'
   })
 }
