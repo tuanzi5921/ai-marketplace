@@ -1,0 +1,2589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>企业 AI 应用市场 · 全功能本地预览</title>
+<style>
+  /* ============ 全局变量 / 主题 ============ */
+  :root{
+    --bg:#0f172a;
+    --bg-soft:#1e293b;
+    --card:#ffffff;
+    --brand:#4f46e5;
+    --brand-2:#7c3aed;
+    --brand-grad:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%);
+    --text-main:#0f172a;
+    --text-sub:#64748b;
+    --text-muted:#94a3b8;
+    --border:#e2e8f0;
+    --danger:#ef4444;
+    --success:#10b981;
+    --warning:#f59e0b;
+    --tag-admin:#7c3aed;
+    --tag-operator:#0ea5e9;
+    --tag-judge:#f59e0b;
+    --tag-dept:#10b981;
+    --tag-user:#94a3b8;
+    --shadow:0 10px 30px rgba(2,6,23,.12), 0 4px 12px rgba(2,6,23,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(99,102,241,.18), transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, rgba(168,85,247,.16), transparent 60%),
+      var(--bg);
+    color:var(--text-main);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding:24px;
+    line-height:1.5;
+  }
+  .hidden{display:none !important}
+
+  /* ============ 登录 / 改密 卡片 ============ */
+  .auth-wrap{
+    width:100%;
+    max-width:440px;
+    margin:0 auto;
+  }
+  .brand-mark{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:56px;height:56px;
+    border-radius:14px;
+    background:var(--brand-grad);
+    color:#fff;
+    font-weight:800;
+    font-size:24px;
+    letter-spacing:1px;
+    box-shadow:0 8px 24px rgba(99,102,241,.45);
+    margin:0 auto 16px;
+  }
+  .auth-card{
+    background:var(--card);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:36px 32px 28px;
+  }
+  .auth-title{
+    font-size:20px;
+    font-weight:700;
+    text-align:center;
+    color:var(--text-main);
+    margin-bottom:4px;
+  }
+  .auth-subtitle{
+    font-size:13px;
+    color:var(--text-sub);
+    text-align:center;
+    margin-bottom:24px;
+  }
+  .field{margin-bottom:18px;position:relative}
+  .field label{
+    display:block;
+    font-size:13px;
+    color:var(--text-sub);
+    margin-bottom:6px;
+    font-weight:500;
+  }
+  .field .control{position:relative}
+  .field input[type=text],
+  .field input[type=password],
+  .field input[type=email],
+  .field input[type=number],
+  .field input[type=search],
+  .field textarea,
+  .field select{
+    width:100%;
+    height:40px;
+    padding:0 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    color:var(--text-main);
+    background:#fff;
+    transition:border-color .15s, box-shadow .15s;
+    outline:none;
+    font-family:inherit;
+  }
+  .field textarea{
+    height:auto;
+    min-height:80px;
+    padding:10px 12px;
+    resize:vertical;
+    line-height:1.6;
+  }
+  .field input:focus,
+  .field textarea:focus,
+  .field select:focus{
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(79,70,229,.15);
+  }
+  .field.has-pw input{padding-right:36px}
+  .toggle-pw{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    width:24px;height:24px;border:0;background:transparent;cursor:pointer;
+    color:var(--text-muted);font-size:14px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:4px;
+  }
+  .toggle-pw:hover{color:var(--brand)}
+  .hint{
+    font-size:12px;color:var(--text-muted);
+    background:#f8fafc;border:1px dashed var(--border);
+    border-radius:6px;padding:10px 12px;margin-bottom:18px;
+    line-height:1.7;
+  }
+  .hint code{
+    background:#eef2ff;color:#4338ca;padding:1px 5px;border-radius:4px;font-size:12px;
+    cursor:pointer;
+  }
+  .hint code:hover{background:#e0e7ff}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    height:40px;padding:0 18px;
+    border-radius:8px;border:1px solid transparent;
+    font-size:14px;font-weight:600;cursor:pointer;
+    transition:all .15s;
+    background:#fff;color:var(--text-main);
+    border-color:var(--border);
+    font-family:inherit;
+    white-space:nowrap;
+  }
+  .btn:hover{border-color:#cbd5e1}
+  .btn-primary{
+    background:var(--brand);color:#fff;border-color:var(--brand);
+    box-shadow:0 4px 12px rgba(79,70,229,.3);
+  }
+  .btn-primary:hover{background:#4338ca;border-color:#4338ca}
+  .btn-block{width:100%}
+  .btn-sm{height:30px;padding:0 12px;font-size:12px}
+  .btn-danger{background:#fff;color:var(--danger);border-color:#fecaca}
+  .btn-danger:hover{background:#fef2f2}
+  .btn-success{background:#fff;color:var(--success);border-color:#bbf7d0}
+  .btn-success:hover{background:#f0fdf4}
+  .btn-warning{background:#fff;color:var(--warning);border-color:#fde68a}
+  .btn-warning:hover{background:#fffbeb}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--text-sub)}
+  .btn-ghost:hover{color:var(--brand);background:#f1f5f9}
+  .field-error{
+    color:var(--danger);font-size:12px;margin-top:6px;min-height:14px;
+  }
+  .auth-footnote{
+    text-align:center;font-size:12px;color:var(--text-muted);
+    margin-top:18px;line-height:1.6;
+  }
+  .auth-alert,
+  .alert{
+    border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:14px;
+    border:1px solid;
+  }
+  .alert-error{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+  .alert-success{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+  .alert-info{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+  .alert-warning{background:#fffbeb;color:#b45309;border-color:#fde68a}
+
+  /* ============ 工作台主框架 ============ */
+  .dash-shell{
+    width:100%;max-width:1180px;
+    margin:0 auto;
+    background:var(--card);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .dash-topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;background:#fff;border-bottom:1px solid var(--border);
+    gap:12px;
+  }
+  .dash-topbar .left{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .dash-topbar .brand-mini{
+    width:32px;height:32px;border-radius:8px;background:var(--brand-grad);
+    color:#fff;font-weight:800;font-size:14px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 10px rgba(99,102,241,.35);
+  }
+  .dash-topbar .title{font-size:15px;font-weight:700;color:var(--text-main)}
+  .dash-topbar .whoami{font-size:12px;color:var(--text-sub);margin-left:6px}
+  .dash-topbar .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .dash-tabs{
+    display:flex;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  .tab-btn{
+    padding:10px 14px;font-size:14px;background:transparent;border:0;cursor:pointer;
+    color:var(--text-sub);border-bottom:2px solid transparent;font-weight:500;
+    white-space:nowrap;font-family:inherit;
+  }
+  .tab-btn.active{color:var(--brand);border-bottom-color:var(--brand)}
+  .tab-btn:hover{color:var(--brand)}
+  .dash-body{padding:24px;background:#f8fafc;min-height:520px}
+
+  /* ============ 欢迎卡 + 统计卡 ============ */
+  .dash-welcome{
+    background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .avatar{
+    width:48px;height:48px;border-radius:50%;background:var(--brand-grad);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;
+    font-size:18px;
+    flex-shrink:0;
+  }
+  .welcome-text .hi{font-size:16px;font-weight:700;color:var(--text-main)}
+  .welcome-text .meta{font-size:13px;color:var(--text-sub);margin-top:4px}
+  .role-tags{display:inline-flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .role-tag{
+    font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;
+    border:1px solid transparent;letter-spacing:.3px;
+  }
+  .tag-USER{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}
+  .tag-ADMIN{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}
+  .tag-OPERATOR{background:#e0f2fe;color:#0369a1;border-color:#bae6fd}
+  .tag-JUDGE{background:#fef3c7;color:#b45309;border-color:#fde68a}
+  .tag-DEPT_HEAD{background:#d1fae5;color:#047857;border-color:#a7f3d0}
+  .tag-DISABLED{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+
+  .stats-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:14px;margin-top:16px;
+  }
+  .stat-card{
+    background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 16px;
+  }
+  .stat-card .stat-label{
+    font-size:12px;color:var(--text-muted);font-weight:500;
+  }
+  .stat-card .stat-value{
+    font-size:26px;font-weight:800;color:var(--brand);margin-top:4px;
+    line-height:1.2;
+  }
+  .stat-card .stat-foot{
+    font-size:11px;color:var(--text-muted);margin-top:4px;
+  }
+
+  /* ============ 通用表格 ============ */
+  .data-table{
+    width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;
+    border-collapse:collapse;overflow:hidden;font-size:13px;
+  }
+  .data-table thead th{
+    background:#f1f5f9;color:#475569;text-align:left;font-weight:600;
+    padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;
+    letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;
+  }
+  .data-table tbody td{
+    padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-main);
+    vertical-align:middle;
+  }
+  .data-table tbody tr:last-child td{border-bottom:0}
+  .data-table tbody tr:hover{background:#f8fafc}
+  .row-disabled td{color:var(--text-muted)}
+  .switch{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  }
+  .switch .dot{
+    width:34px;height:18px;border-radius:10px;background:#cbd5e1;
+    position:relative;transition:background .15s;
+  }
+  .switch .dot::after{
+    content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;
+    background:#fff;border-radius:50%;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2);
+  }
+  .switch.on .dot{background:var(--success)}
+  .switch.on .dot::after{left:18px}
+  .switch-label{font-size:12px;color:var(--text-sub)}
+  .role-select,
+  .small-select{
+    height:30px;padding:0 8px;border:1px solid var(--border);border-radius:6px;
+    font-size:12px;background:#fff;color:var(--text-main);outline:none;
+    font-family:inherit;
+  }
+  .role-select:focus,
+  .small-select:focus{border-color:var(--brand)}
+  .op-cell{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .empty-row td{text-align:center;color:var(--text-muted);padding:32px}
+
+  /* ============ 作品卡片网格 ============ */
+  .toolbar{
+    display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;
+  }
+  .toolbar .search-box{
+    flex:1;min-width:200px;position:relative;
+  }
+  .toolbar .search-box input{
+    width:100%;height:40px;padding:0 12px;border:1px solid var(--border);
+    border-radius:8px;font-size:14px;background:#fff;outline:none;font-family:inherit;
+  }
+  .toolbar .search-box input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:16px;
+  }
+  .work-card{
+    background:#fff;border:1px solid var(--border);border-radius:12px;
+    overflow:hidden;cursor:pointer;transition:transform .15s, box-shadow .15s;
+    display:flex;flex-direction:column;
+  }
+  .work-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(2,6,23,.12)}
+  .work-cover{
+    height:120px;
+    background:var(--brand-grad);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:46px;font-weight:800;
+    position:relative;
+  }
+  .work-cover.t-SOURCE{background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)}
+  .work-cover.t-EXECUTABLE{background:linear-gradient(135deg,#10b981 0%,#6366f1 100%)}
+  .work-cover.t-SAAS{background:linear-gradient(135deg,#f59e0b 0%,#a855f7 100%)}
+  .work-cover.t-DOCUMENT{background:linear-gradient(135deg,#64748b 0%,#7c3aed 100%)}
+  /* 新类型封面配色 */
+  .work-cover.t-script{background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)}
+  .work-cover.t-assistant{background:linear-gradient(135deg,#10b981 0%,#a855f7 100%)}
+  .work-cover.t-prompt{background:linear-gradient(135deg,#f59e0b 0%,#7c3aed 100%)}
+  .work-cover.t-other{background:linear-gradient(135deg,#64748b 0%,#7c3aed 100%)}
+  /* 截图占位区 */
+  .screenshot-slot{
+    height:180px;border-radius:10px;background:var(--brand-grad);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#fff;font-size:36px;font-weight:800;gap:6px;position:relative;
+  }
+  .screenshot-slot .ss-name{font-size:12px;font-weight:500;opacity:.92;background:rgba(0,0,0,.18);padding:3px 10px;border-radius:10px}
+  .work-cover .type-chip{
+    position:absolute;top:8px;right:8px;
+    background:rgba(255,255,255,.92);color:#0f172a;
+    font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
+    letter-spacing:.3px;
+  }
+  .work-body{padding:14px;flex:1;display:flex;flex-direction:column}
+  .work-title{font-size:15px;font-weight:700;color:var(--text-main);margin-bottom:4px;line-height:1.4}
+  .work-author{font-size:12px;color:var(--text-sub);margin-bottom:6px}
+  .work-desc{font-size:12px;color:var(--text-muted);line-height:1.5;flex:1;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .work-foot{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);
+    font-size:12px;color:var(--text-sub);
+  }
+  .work-foot .rating{color:var(--warning);font-weight:700}
+  .work-foot .dl{color:var(--text-muted)}
+
+  /* ============ 作品详情 ============ */
+  .detail-shell{
+    width:100%;max-width:980px;margin:0 auto;background:#fff;
+    border-radius:16px;box-shadow:var(--shadow);overflow:hidden;
+  }
+  .detail-head{
+    padding:24px;border-bottom:1px solid var(--border);
+    display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;
+  }
+  .detail-cover{
+    width:140px;height:140px;border-radius:12px;
+    background:var(--brand-grad);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:60px;font-weight:800;flex-shrink:0;
+  }
+  .detail-cover.t-SOURCE{background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)}
+  .detail-cover.t-EXECUTABLE{background:linear-gradient(135deg,#10b981 0%,#6366f1 100%)}
+  .detail-cover.t-SAAS{background:linear-gradient(135deg,#f59e0b 0%,#a855f7 100%)}
+  .detail-cover.t-DOCUMENT{background:linear-gradient(135deg,#64748b 0%,#7c3aed 100%)}
+  .detail-cover.t-script{background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)}
+  .detail-cover.t-assistant{background:linear-gradient(135deg,#10b981 0%,#a855f7 100%)}
+  .detail-cover.t-prompt{background:linear-gradient(135deg,#f59e0b 0%,#7c3aed 100%)}
+  .detail-cover.t-other{background:linear-gradient(135deg,#64748b 0%,#7c3aed 100%)}
+  .radio-group{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .radio-item{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-main);cursor:pointer;background:#f8fafc;border:1px solid var(--border);padding:6px 12px;border-radius:8px}
+  .radio-item input{margin:0;accent-color:var(--brand)}
+  .radio-item.checked{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+  .cond-field{margin-top:8px;display:none}
+  .cond-field.show{display:block}
+  .detail-title{font-size:22px;font-weight:800;margin-bottom:8px}
+  .detail-meta{font-size:13px;color:var(--text-sub);line-height:1.8}
+  .detail-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{
+    font-size:11px;padding:3px 8px;border-radius:6px;background:#f1f5f9;color:#475569;
+    border:1px solid #e2e8f0;
+  }
+  .chip-status-PUBLISHED{background:#d1fae5;color:#047857;border-color:#a7f3d0}
+  .chip-status-DRAFT{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}
+  .chip-status-PENDING{background:#fef3c7;color:#b45309;border-color:#fde68a}
+  .chip-status-APPROVED{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}
+  .chip-status-REJECTED{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+  .chip-status-UNLISTED{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}
+  .chip-status-FROZEN{background:#e0e7ff;color:#4338ca;border-color:#c7d2fe}
+  .detail-body{padding:24px}
+  .detail-section{margin-bottom:24px}
+  .detail-section h4{
+    font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:8px;
+    padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+  .detail-section p{font-size:13px;color:var(--text-sub);line-height:1.8;white-space:pre-wrap}
+  .rating-summary{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    background:#f8fafc;border:1px solid var(--border);border-radius:10px;
+    padding:14px 18px;
+  }
+  .rating-summary .big-score{
+    font-size:34px;font-weight:800;color:var(--warning);
+  }
+  .rating-summary .meta{font-size:13px;color:var(--text-sub)}
+
+  /* ============ 星级评分组件 ============ */
+  .star-row{
+    display:flex;align-items:center;gap:10px;margin-bottom:12px;
+  }
+  .star-row .star-label{font-size:13px;color:var(--text-sub);min-width:80px;font-weight:500}
+  .stars{display:inline-flex;gap:2px}
+  .star{
+    color:#cbd5e1;cursor:pointer;font-size:22px;line-height:1;user-select:none;
+    transition:color .1s;
+  }
+  .star.filled{color:var(--warning)}
+  .star:hover{color:#fbbf24}
+  .star.readonly{cursor:default}
+  .star.readonly:hover{color:var(--warning)}
+  .stars-display .star{cursor:default}
+  .stars-display .star:hover{color:var(--warning)}
+
+  /* ============ 排行榜 ============ */
+  .rank-list{display:flex;flex-direction:column;gap:10px}
+  .rank-item{
+    display:flex;align-items:center;gap:14px;background:#fff;
+    border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+    cursor:pointer;transition:border-color .15s,box-shadow .15s;
+  }
+  .rank-item:hover{border-color:#c7d2fe;box-shadow:0 6px 18px rgba(99,102,241,.1)}
+  .rank-no{
+    width:34px;height:34px;border-radius:50%;flex-shrink:0;
+    background:#f1f5f9;color:#64748b;font-weight:800;font-size:14px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .rank-item:nth-child(1) .rank-no{background:#fef3c7;color:#b45309}
+  .rank-item:nth-child(2) .rank-no{background:#e2e8f0;color:#475569}
+  .rank-item:nth-child(3) .rank-no{background:#fed7aa;color:#9a3412}
+  .rank-thumb{
+    width:48px;height:48px;border-radius:8px;background:var(--brand-grad);
+    color:#fff;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .rank-info{flex:1;min-width:0}
+  .rank-title{font-size:14px;font-weight:700;color:var(--text-main)}
+  .rank-sub{font-size:12px;color:var(--text-sub);margin-top:2px}
+  .rank-score{font-size:13px;color:var(--warning);font-weight:700;text-align:right;flex-shrink:0}
+
+  /* ============ 权限矩阵 ============ */
+  .perm-table{
+    width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;
+    border-collapse:collapse;overflow:hidden;font-size:13px;
+  }
+  .perm-table thead th{
+    background:#f1f5f9;color:#475569;text-align:center;font-weight:600;
+    padding:12px 8px;border-bottom:1px solid var(--border);font-size:12px;
+  }
+  .perm-table thead th:first-child{text-align:left}
+  .perm-table tbody td{
+    padding:12px 8px;border-bottom:1px solid var(--border);text-align:center;
+  }
+  .perm-table tbody td:first-child{
+    text-align:left;font-weight:600;color:var(--text-main);background:#f8fafc;
+  }
+  .perm-table tbody tr:last-child td{border-bottom:0}
+  .perm-check{
+    width:20px;height:20px;cursor:pointer;accent-color:var(--brand);
+  }
+
+  /* ============ Modal ============ */
+  .modal-mask{
+    position:fixed;inset:0;background:rgba(2,6,23,.55);
+    display:flex;align-items:center;justify-content:center;z-index:50;
+    backdrop-filter:blur(2px);padding:20px;
+  }
+  .modal{
+    width:100%;max-width:520px;background:#fff;border-radius:14px;
+    box-shadow:0 20px 50px rgba(2,6,23,.3);overflow:hidden;
+    max-height:90vh;display:flex;flex-direction:column;
+  }
+  .modal-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;
+  }
+  .modal-head h3{font-size:15px;font-weight:700}
+  .modal-close{
+    border:0;background:transparent;font-size:24px;color:var(--text-muted);
+    cursor:pointer;line-height:1;width:28px;height:28px;border-radius:4px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .modal-close:hover{color:var(--danger);background:#fef2f2}
+  .modal-body{padding:20px;overflow-y:auto;flex:1}
+  .modal-foot{
+    padding:14px 20px;border-top:1px solid var(--border);
+    display:flex;justify-content:flex-end;gap:8px;background:#f8fafc;flex-shrink:0;
+  }
+  .checkbox-group{display:flex;flex-wrap:wrap;gap:8px 14px}
+  .checkbox-item{
+    display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-main);
+    background:#f8fafc;border:1px solid var(--border);padding:6px 10px;border-radius:8px;
+    cursor:pointer;user-select:none;
+  }
+  .checkbox-item input{margin:0;accent-color:var(--brand)}
+  .checkbox-item.checked{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+  .field-help{font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5}
+  .form-grid{display:grid;grid-template-columns:1fr;gap:14px}
+  .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .badge-mock{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-sub);
+    background:#f8fafc;border:1px dashed var(--border);padding:6px 10px;border-radius:8px;
+  }
+  .badge-mock.selected{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+
+  /* ============ 评分列表 ============ */
+  .rating-list{display:flex;flex-direction:column;gap:10px}
+  .rating-item{
+    background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+  }
+  .rating-item-head{
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+    flex-wrap:wrap;gap:6px;
+  }
+  .rating-item .rater{font-size:13px;font-weight:600;color:var(--text-main)}
+  .rating-item .time{font-size:11px;color:var(--text-muted)}
+  .rating-item .dims{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-sub)}
+  .rating-item .dims b{color:var(--warning)}
+  .rating-item .comment{
+    font-size:13px;color:var(--text-sub);background:#f8fafc;border-radius:6px;
+    padding:8px 10px;margin-top:8px;line-height:1.6;
+  }
+
+  /* ============ 面包屑 / 返回 ============ */
+  .page-bar{
+    width:100%;max-width:1180px;margin:0 auto 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .page-bar .crumbs{font-size:13px;color:var(--text-muted)}
+  .page-bar .crumbs b{color:#fff}
+
+  /* ============ 响应式 ============ */
+  @media (max-width:640px){
+    body{padding:12px}
+    .auth-card{padding:28px 20px}
+    .dash-body{padding:16px}
+    .dash-topbar{padding:12px 16px;flex-wrap:wrap;gap:10px}
+    .dash-tabs{padding:0 16px}
+    .data-table{font-size:12px}
+    .data-table thead th,.data-table tbody td{padding:8px}
+    .op-cell{flex-wrap:wrap}
+    .detail-head{padding:16px}
+    .detail-cover{width:100px;height:100px;font-size:44px}
+    .form-row-2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 登录页 ============ -->
+<section id="view-login" class="auth-wrap">
+  <div class="brand-mark">AI</div>
+  <div class="auth-card">
+    <div class="auth-title">企业 AI 应用市场</div>
+    <div class="auth-subtitle">全功能本地预览 · 5 个测试账号可选</div>
+
+    <div id="loginAlert"></div>
+
+    <div class="field">
+      <label for="loginAccount">账号</label>
+      <div class="control">
+        <input id="loginAccount" type="text" autocomplete="off" placeholder="请输入账号（如 admin）" />
+      </div>
+    </div>
+
+    <div class="field has-pw">
+      <label for="loginPassword">密码</label>
+      <div class="control">
+        <input id="loginPassword" type="password" autocomplete="off" placeholder="请输入密码" />
+        <button type="button" class="toggle-pw" data-target="loginPassword" title="显示/隐藏密码">👁</button>
+      </div>
+    </div>
+
+    <div class="hint">
+      <b>测试账号（密码统一 <code>Welcome@2026</code>）</b><br/>
+      <span style="color:#475569">账号即邮箱前缀，如 admin 对应 admin@company.com</span><br/>
+      <code data-account="admin">admin</code> · 管理员（已改密，无需改）<br/>
+      <code data-account="operator1">operator1</code> · 运营（首次需改密）<br/>
+      <code data-account="judge1">judge1</code> · 评委（首次需改密）<br/>
+      <code data-account="dept_head1">dept_head1</code> · 部门负责人（首次需改密）<br/>
+      <code data-account="user1">user1</code> · 普通用户（首次需改密）<br/>
+      <span style="color:#94a3b8">点击账号可自动填充</span>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block" id="btnLogin">登 录</button>
+
+    <div class="auth-footnote">
+      登录即表示同意企业 AI 应用市场使用规范
+    </div>
+  </div>
+</section>
+
+<!-- ============ 改密页 ============ -->
+<section id="view-change" class="auth-wrap hidden">
+  <div class="brand-mark">AI</div>
+  <div class="auth-card">
+    <div class="auth-title">首次登录 · 修改密码</div>
+    <div class="auth-subtitle">为了账号安全，请先修改初始密码</div>
+
+    <div id="changeAlert"></div>
+
+    <div class="field has-pw">
+      <label for="newPwd">新密码</label>
+      <div class="control">
+        <input id="newPwd" type="password" autocomplete="off" placeholder="至少 8 位，含字母+数字" />
+        <button type="button" class="toggle-pw" data-target="newPwd" title="显示/隐藏密码">👁</button>
+      </div>
+      <div class="field-error" id="errNew"></div>
+    </div>
+
+    <div class="field has-pw">
+      <label for="confirmPwd">确认新密码</label>
+      <div class="control">
+        <input id="confirmPwd" type="password" autocomplete="off" placeholder="再次输入新密码" />
+        <button type="button" class="toggle-pw" data-target="confirmPwd" title="显示/隐藏密码">👁</button>
+      </div>
+      <div class="field-error" id="errConfirm"></div>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block" id="btnChange">提交修改</button>
+  </div>
+</section>
+
+<!-- ============ 工作台首页（含 7 个 Tab） ============ -->
+<section id="view-dash" class="hidden" style="width:100%;">
+  <div class="dash-shell">
+    <div class="dash-topbar">
+      <div class="left">
+        <div class="brand-mini">AI</div>
+        <div>
+          <div class="title">企业 AI 应用市场 · 工作台</div>
+        </div>
+        <div class="whoami">当前用户：<span id="curUsername">—</span> <span id="curRoles"></span></div>
+      </div>
+      <div class="right">
+        <button type="button" class="btn btn-sm btn-primary" id="btnGoBrowse">返回市场</button>
+        <button type="button" class="btn btn-sm" id="btnLogout">退出登录</button>
+      </div>
+    </div>
+    <div class="dash-tabs" id="dashTabs">
+      <!-- tab 按权限动态生成 -->
+    </div>
+    <div class="dash-body" id="dashBody">
+      <!-- 各 tab 内容动态注入 -->
+    </div>
+  </div>
+</section>
+
+<!-- ============ 作品市场页（登录后默认页） ============ -->
+<section id="view-browse" class="hidden">
+  <div class="dash-shell" style="max-width:1180px;">
+    <div class="dash-topbar">
+      <div class="left">
+        <div class="brand-mini">AI</div>
+        <div><div class="title">企业 AI 应用市场 · 作品市场</div></div>
+      </div>
+      <div class="right">
+        <button type="button" class="btn btn-sm" id="btnMarketRanking">首页排行</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btnMarketDash">运营后台</button>
+        <button type="button" class="btn btn-sm" id="btnMarketLogout">退出登录</button>
+      </div>
+    </div>
+    <div class="dash-body">
+      <div class="toolbar">
+        <div class="search-box">
+          <input id="browseSearch" type="search" placeholder="搜索作品标题 / 作者 / 类型 / 场景" />
+        </div>
+        <select id="browseType" class="small-select" style="height:40px;width:auto;min-width:130px;">
+          <option value="">全部类型</option>
+          <option value="自动化脚本">自动化脚本</option>
+          <option value="智能助手">智能助手</option>
+          <option value="提示词模板">提示词模板</option>
+          <option value="其他">其他</option>
+        </select>
+        <select id="browseDomain" class="small-select" style="height:40px;width:auto;min-width:130px;">
+          <option value="">全部业务域</option>
+        </select>
+        <div style="color:#cbd5e1;font-size:13px;align-self:center;">共 <span id="browseCount">0</span> 个作品</div>
+      </div>
+      <div id="browseGrid" class="grid"></div>
+      <div id="browseEmpty" class="empty-row" style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted);display:none;">暂无匹配作品</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 作品详情页（独立页） ============ -->
+<section id="view-detail" class="hidden">
+  <div class="page-bar">
+    <div class="crumbs"><a id="backFromDetail" href="javascript:void(0)">← 返回</a> · <b id="detailCrumbTitle">作品详情</b></div>
+  </div>
+  <div class="detail-shell">
+    <div class="detail-head">
+      <div class="detail-cover" id="detailCover">A</div>
+      <div style="flex:1;min-width:240px;">
+        <div class="detail-title" id="detailTitle">作品标题</div>
+        <div class="detail-meta" id="detailMeta"></div>
+        <div class="detail-chips" id="detailChips"></div>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div id="detailAlert"></div>
+      <div id="detailInfo"></div>
+      <div class="detail-section">
+        <h4>评分汇总</h4>
+        <div class="rating-summary">
+          <div class="big-score" id="detailAvg">0.0</div>
+          <div class="meta">共 <b id="detailCount">0</b> 次评分 · 下载 <b id="detailDl">0</b> 次</div>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h4>我要评分</h4>
+        <div id="ratingArea"></div>
+      </div>
+      <div class="detail-section">
+        <h4>评分列表</h4>
+        <div id="ratingList" class="rating-list"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 通用 Modal 容器 ============ -->
+<div id="modalRoot"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===================================================================
+   * 一、Mock 数据定义
+   * =================================================================== */
+
+  var STORAGE_KEY = "ai_marketplace_full_v3";
+
+  // 5 个默认用户（密码统一 Welcome@2026）
+  var DEFAULT_USERS = [
+    { id:1, account:'admin',      password:'Welcome@2026', username:'Administrator', email:'admin@example.com',  mobile:'13800000001', department:'信息中心', roles:'USER,ADMIN',     points:999, enabled:1, mustChangePassword:0, createdAt:'2026-09-01 09:00:00', updatedAt:'2026-09-01 09:00:00' },
+    { id:2, account:'operator1',  password:'Welcome@2026', username:'运营小王',     email:'operator1@example.com',    mobile:'13800000002', department:'运营部',   roles:'USER,OPERATOR',  points:50,  enabled:1, mustChangePassword:1, createdAt:'2026-09-01 09:00:00', updatedAt:'2026-09-01 09:00:00' },
+    { id:3, account:'judge1',     password:'Welcome@2026', username:'评委老李',     email:'judge1@example.com', mobile:'13800000003', department:'专家委',   roles:'USER,JUDGE',     points:120, enabled:1, mustChangePassword:1, createdAt:'2026-09-01 09:00:00', updatedAt:'2026-09-01 09:00:00' },
+    { id:4, account:'dept_head1', password:'Welcome@2026', username:'研发部赵',     email:'dept_head1@example.com',   mobile:'13800000004', department:'研发部',   roles:'USER,DEPT_HEAD', points:80,  enabled:1, mustChangePassword:1, createdAt:'2026-09-01 09:00:00', updatedAt:'2026-09-01 09:00:00' },
+    { id:5, account:'user1',      password:'Welcome@2026', username:'普通员工小张', email:'user1@example.com', mobile:'13800000005', department:'研发部',   roles:'USER',           points:30,  enabled:1, mustChangePassword:1, createdAt:'2026-09-01 09:00:00', updatedAt:'2026-09-01 09:00:00' }
+  ];
+
+  // 6 个已发布作品（新字段结构：title/type/scenario/functionDesc/expectedBenefit/usageMethod/
+  //   needCompanySupport/supportDesc/isIndependent/independentDesc/attachmentType/attachmentTypeOther/attachmentName/screenshotName）
+  var DEFAULT_SUBMISSIONS = [
+    {
+      id:101, title:'智能合同审查助手', authorId:5, authorName:'普通员工小张',
+      type:'智能助手', typeOther:'',
+      scenario:'法务团队每日审查大量合同条款，需快速识别风险点并给出修改建议。',
+      functionDesc:'基于 LLM 自动提取合同关键条款、标注风险等级（高/中/低）、生成审查报告，支持买卖、租赁、劳动、技术、股权等 12 类合同。',
+      expectedBenefit:'单份合同审查时间从 2 小时降至 15 分钟，风险识别率提升 40%。',
+      usageMethod:'上传合同 PDF，选择审查模式，3 分钟内生成 HTML 报告与 JSON 结构化数据。',
+      needCompanySupport:'是', supportDesc:'需对接公司法务知识库与 OA 审批流。',
+      isIndependent:'否', independentDesc:'法务部张工协作开发条款提取规则。',
+      attachmentType:'演示视频/截图', attachmentTypeOther:'', attachmentName:'合同审查演示.mp4',
+      screenshotName:'contract.png',
+      version:'1.0.0', downloadCount:42, ratingAvg:4.5, ratingCount:4, status:'PUBLISHED',
+      rejectReason:'', reviewedBy:1, reviewedAt:'2026-09-05 10:00:00',
+      publishedAt:'2026-09-05 10:00:00', createdAt:'2026-09-03 14:00:00', updatedAt:'2026-09-05 10:00:00'
+    },
+    {
+      id:102, title:'销售数据看板生成器', authorId:5, authorName:'普通员工小张',
+      type:'智能助手', typeOther:'',
+      scenario:'销售团队每周例会需快速汇总多维度数据，传统手工制表耗时且易错。',
+      functionDesc:'上传 Excel/CSV 销售数据，自动识别维度字段，生成时间趋势、区域分布、产品排行、客户画像等 8 类图表，看板可分享、导出 PDF、定时刷新。',
+      expectedBenefit:'例会准备时间从半天降至 10 分钟，数据准确率 100%。',
+      usageMethod:'登录 SaaS 后台上传销售明细，选择图表模板，一键生成看板并导出。',
+      needCompanySupport:'否', supportDesc:'',
+      isIndependent:'是', independentDesc:'',
+      attachmentType:'演示视频/截图', attachmentTypeOther:'', attachmentName:'销售看板演示.mp4',
+      screenshotName:'sales-dashboard.png',
+      version:'2.1.0', downloadCount:68, ratingAvg:4.7, ratingCount:5, status:'PUBLISHED',
+      rejectReason:'', reviewedBy:1, reviewedAt:'2026-09-05 10:00:00',
+      publishedAt:'2026-09-05 10:00:00', createdAt:'2026-09-03 15:00:00', updatedAt:'2026-09-05 10:00:00'
+    },
+    {
+      id:103, title:'代码自动重构工具', authorId:4, authorName:'研发部赵',
+      type:'自动化脚本', typeOther:'',
+      scenario:'研发团队代码治理过程中需批量进行重构操作以提升代码质量。',
+      functionDesc:'基于 AST 的代码重构引擎，支持 Java/Python/JS 三种语言，提供提取方法、内联变量、重命名、移动类、替换魔法数等 20+ 重构模式，CLI 工具 + IDE 插件，支持 dry-run 预览。',
+      expectedBenefit:'重构效率提升 5 倍，代码异味减少 60%，降低技术债。',
+      usageMethod:'安装 CLI 后执行 `refactor run --pattern=extract-method --dry-run`，确认无误后去掉 dry-run 执行。',
+      needCompanySupport:'否', supportDesc:'',
+      isIndependent:'否', independentDesc:'研发部李工协助设计重构规则库。',
+      attachmentType:'源代码/文件', attachmentTypeOther:'', attachmentName:'refactor-tool-src.zip',
+      screenshotName:'refactor.png',
+      version:'0.9.3', downloadCount:25, ratingAvg:4.2, ratingCount:3, status:'PUBLISHED',
+      rejectReason:'', reviewedBy:1, reviewedAt:'2026-09-06 10:00:00',
+      publishedAt:'2026-09-06 10:00:00', createdAt:'2026-09-04 11:00:00', updatedAt:'2026-09-06 10:00:00'
+    },
+    {
+      id:104, title:'会议纪要智能整理', authorId:5, authorName:'普通员工小张',
+      type:'提示词模板', typeOther:'',
+      scenario:'会后整理纪要耗时，需快速从录音/逐字稿中提取议题、决议、待办。',
+      functionDesc:'内置会议纪要提示词模板，接入 ASR 转写 + LLM 摘要，输出议题分段、决议、待办事项（含责任人和截止时间）、风险点，支持飞书/钉钉导出。',
+      expectedBenefit:'纪要整理时间从 1 小时降至 5 分钟，待办遗漏率降低 80%。',
+      usageMethod:'复制提示词模板到 LLM 对话框，粘贴会议逐字稿，按提示完成结构化输出。',
+      needCompanySupport:'是', supportDesc:'需对接公司 LLM 网关与飞书开放平台。',
+      isIndependent:'是', independentDesc:'',
+      attachmentType:'工具使用说明', attachmentTypeOther:'', attachmentName:'纪要提示词使用文档.docx',
+      screenshotName:'minutes.png',
+      version:'1.2.0', downloadCount:53, ratingAvg:4.6, ratingCount:4, status:'PUBLISHED',
+      rejectReason:'', reviewedBy:1, reviewedAt:'2026-09-07 10:00:00',
+      publishedAt:'2026-09-07 10:00:00', createdAt:'2026-09-04 16:00:00', updatedAt:'2026-09-07 10:00:00'
+    },
+    {
+      id:105, title:'客服话术推荐引擎', authorId:5, authorName:'普通员工小张',
+      type:'智能助手', typeOther:'',
+      scenario:'在线客服坐席需实时根据客户意图匹配最佳话术，提升响应效率。',
+      functionDesc:'基于客户输入实时意图分类（投诉/咨询/退换/优惠等 8 类），结合知识库推荐 Top 3 话术，支持坐席一键发送，提供 API 可嵌入现有客服系统。',
+      expectedBenefit:'平均响应时间从 60 秒降至 15 秒，客户满意度提升 25%。',
+      usageMethod:'集成 API 后，坐席工作台右侧自动出现话术推荐面板，点击即可发送。',
+      needCompanySupport:'是', supportDesc:'需对接客服知识库与坐席工作台前端。',
+      isIndependent:'否', independentDesc:'客服部王工协助整理话术知识库。',
+      attachmentType:'演示视频/截图', attachmentTypeOther:'', attachmentName:'客服话术演示.mp4',
+      screenshotName:'service-script.png',
+      version:'1.5.0', downloadCount:38, ratingAvg:4.3, ratingCount:3, status:'PUBLISHED',
+      rejectReason:'', reviewedBy:1, reviewedAt:'2026-09-08 10:00:00',
+      publishedAt:'2026-09-08 10:00:00', createdAt:'2026-09-05 09:00:00', updatedAt:'2026-09-08 10:00:00'
+    },
+    {
+      id:106, title:'招聘简历智能筛选', authorId:4, authorName:'研发部赵',
+      type:'智能助手', typeOther:'',
+      scenario:'HR 团队招聘初筛阶段需处理大量简历，人工筛选效率低且标准不一。',
+      functionDesc:'批量上传简历，自动抽取教育、工作、技能字段，与岗位 JD 匹配计算相似度，输出 Top N 候选列表，提供 SaaS 界面支持协作评价。',
+      expectedBenefit:'初筛效率提升 10 倍，优质候选人漏筛率降低 50%。',
+      usageMethod:'登录 SaaS 后台上传简历包，输入岗位 JD，系统自动输出排名候选列表。',
+      needCompanySupport:'否', supportDesc:'',
+      isIndependent:'否', independentDesc:'HR 部刘工协助设计评分维度。',
+      attachmentType:'演示视频/截图', attachmentTypeOther:'', attachmentName:'简历筛选演示.mp4',
+      screenshotName:'resume.png',
+      version:'1.0.2', downloadCount:21, ratingAvg:4.1, ratingCount:3, status:'PUBLISHED',
+      rejectReason:'', reviewedBy:1, reviewedAt:'2026-09-09 10:00:00',
+      publishedAt:'2026-09-09 10:00:00', createdAt:'2026-09-06 10:00:00', updatedAt:'2026-09-09 10:00:00'
+    }
+  ];
+
+  // 预置评分记录（10 条，分散在不同作品和评分人）
+  var DEFAULT_RATINGS = [
+    { id:201, submissionId:101, userId:3, userName:'评委老李', ratedByRole:'JUDGE',    easeOfUse:4, businessValue:5, techQuality:5, innovation:4, commentText:'合同风险识别准确，业务价值高，建议增加批量审查。', ratedAt:'2026-09-06 10:00:00' },
+    { id:202, submissionId:101, userId:5, userName:'普通员工小张', ratedByRole:'USER',  easeOfUse:4, businessValue:4, techQuality:4, innovation:3, commentText:'用着还行，希望支持更多合同模板。', ratedAt:'2026-09-07 11:00:00' },
+    { id:203, submissionId:101, userId:1, userName:'Administrator', ratedByRole:'ADMIN', easeOfUse:5, businessValue:5, techQuality:4, innovation:4, commentText:'法务部门反馈不错。', ratedAt:'2026-09-08 09:00:00' },
+    { id:204, submissionId:101, userId:4, userName:'研发部赵', ratedByRole:'DEPT_HEAD',easeOfUse:4, businessValue:5, techQuality:5, innovation:5, commentText:'技术实现扎实。', ratedAt:'2026-09-08 14:00:00' },
+
+    { id:205, submissionId:102, userId:3, userName:'评委老李', ratedByRole:'JUDGE',    easeOfUse:5, businessValue:5, techQuality:5, innovation:4, commentText:'看板效果好，销售团队很满意。', ratedAt:'2026-09-07 10:00:00' },
+    { id:206, submissionId:102, userId:5, userName:'普通员工小张', ratedByRole:'USER', easeOfUse:5, businessValue:5, techQuality:4, innovation:4, commentText:'导出 PDF 很实用。', ratedAt:'2026-09-07 16:00:00' },
+    { id:207, submissionId:102, userId:1, userName:'Administrator', ratedByRole:'ADMIN', easeOfUse:5, businessValue:5, techQuality:5, innovation:5, commentText:'推荐推广。', ratedAt:'2026-09-09 10:00:00' },
+
+    { id:208, submissionId:103, userId:4, userName:'研发部赵', ratedByRole:'DEPT_HEAD',easeOfUse:3, businessValue:4, techQuality:5, innovation:4, commentText:'CLI 学习曲线略陡，但功能强大。', ratedAt:'2026-09-07 12:00:00' },
+    { id:209, submissionId:103, userId:3, userName:'评委老李', ratedByRole:'JUDGE',    easeOfUse:4, businessValue:4, techQuality:5, innovation:4, commentText:'对研发团队很有价值。', ratedAt:'2026-09-08 10:00:00' },
+
+    { id:210, submissionId:104, userId:5, userName:'普通员工小张', ratedByRole:'USER', easeOfUse:5, businessValue:5, techQuality:4, innovation:4, commentText:'纪要质量不错，待办抽取准确。', ratedAt:'2026-09-08 11:00:00' }
+  ];
+
+  // 默认权限矩阵
+  var DEFAULT_PERM_MATRIX = {
+    USER:      { uploadSub:true,  browse:true, rate:true,  ranking:true, mine:true,  review:false, userMgmt:false, permEdit:false },
+    OPERATOR:  { uploadSub:true,  browse:true, rate:true,  ranking:true, mine:true,  review:true,  userMgmt:false, permEdit:false },
+    ADMIN:     { uploadSub:true,  browse:true, rate:true,  ranking:true, mine:true,  review:true,  userMgmt:true,  permEdit:true  },
+    JUDGE:     { uploadSub:true,  browse:true, rate:true,  ranking:true, mine:true,  review:false, userMgmt:false, permEdit:false },
+    DEPT_HEAD: { uploadSub:true,  browse:true, rate:true,  ranking:true, mine:true,  review:false, userMgmt:false, permEdit:false }
+  };
+
+  // 8 个模块的 key + 中文名
+  var PERM_MODULES = [
+    { key:'uploadSub', name:'上传作品' },
+    { key:'browse',    name:'浏览作品' },
+    { key:'rate',      name:'作品打分' },
+    { key:'ranking',   name:'首页排行' },
+    { key:'mine',      name:'我的作品' },
+    { key:'review',    name:'待审作品' },
+    { key:'userMgmt',  name:'用户管理' },
+    { key:'permEdit',  name:'权限矩阵编辑' }
+  ];
+
+  var ROLES = ['USER','OPERATOR','ADMIN','JUDGE','DEPT_HEAD'];
+
+  var TYPE_LABELS = {
+    '自动化脚本':'自动化脚本', '智能助手':'智能助手', '提示词模板':'提示词模板', '其他':'其他',
+    // 兼容旧枚举
+    SOURCE:'源码', EXECUTABLE:'可执行', SAAS:'纯SaaS', DOCUMENT:'文档'
+  };
+  var STATUS_LABELS = {
+    DRAFT:'草稿', PENDING:'待审', APPROVED:'已通过', REJECTED:'已驳回',
+    PUBLISHED:'已发布', UNLISTED:'已下架', FROZEN:'已冻结'
+  };
+
+  // 新字段作品辅助函数
+  function workTypeLabel(s){
+    if(!s) return '—';
+    if(s.type === '其他' && s.typeOther) return s.typeOther;
+    return TYPE_LABELS[s.type] || s.type || '—';
+  }
+  function workCoverClass(s){
+    var map = {
+      '自动化脚本':'t-script','智能助手':'t-assistant','提示词模板':'t-prompt','其他':'t-other',
+      SOURCE:'t-SOURCE', EXECUTABLE:'t-EXECUTABLE', SAAS:'t-SAAS', DOCUMENT:'t-DOCUMENT'
+    };
+    return 'work-cover ' + (map[s && s.type] || 't-other');
+  }
+  function workDetailCoverClass(s){
+    var map = {
+      '自动化脚本':'t-script','智能助手':'t-assistant','提示词模板':'t-prompt','其他':'t-other',
+      SOURCE:'t-SOURCE', EXECUTABLE:'t-EXECUTABLE', SAAS:'t-SAAS', DOCUMENT:'t-DOCUMENT'
+    };
+    return 'detail-cover ' + (map[s && s.type] || 't-other');
+  }
+  function workDesc(s){
+    return s.shortDesc || s.scenario || s.functionDesc || '';
+  }
+  function workAttachmentLabel(s){
+    if(!s) return '—';
+    if(s.attachmentType === '其他' && s.attachmentTypeOther) return s.attachmentTypeOther;
+    return s.attachmentType || '—';
+  }
+
+  /* ===================================================================
+   * 二、localStorage 存取
+   * =================================================================== */
+
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+  function loadDB(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        var db = {
+          users: clone(DEFAULT_USERS),
+          submissions: clone(DEFAULT_SUBMISSIONS),
+          ratings: clone(DEFAULT_RATINGS),
+          downloads: [],
+          permMatrix: clone(DEFAULT_PERM_MATRIX),
+          session: { userId:null }
+        };
+        saveDB(db);
+        return db;
+      }
+      var parsed = JSON.parse(raw);
+      // 字段兜底
+      if(!parsed.users) parsed.users = clone(DEFAULT_USERS);
+      if(!parsed.submissions) parsed.submissions = clone(DEFAULT_SUBMISSIONS);
+      if(!parsed.ratings) parsed.ratings = clone(DEFAULT_RATINGS);
+      if(!parsed.downloads) parsed.downloads = [];
+      if(!parsed.permMatrix) parsed.permMatrix = clone(DEFAULT_PERM_MATRIX);
+      if(!parsed.session) parsed.session = { userId:null };
+      return parsed;
+    }catch(e){
+      var db2 = {
+        users: clone(DEFAULT_USERS),
+        submissions: clone(DEFAULT_SUBMISSIONS),
+        ratings: clone(DEFAULT_RATINGS),
+        downloads: [],
+        permMatrix: clone(DEFAULT_PERM_MATRIX),
+        session: { userId:null }
+      };
+      saveDB(db2);
+      return db2;
+    }
+  }
+  function saveDB(db){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  }
+
+  // 工具：根据 id 查用户
+  function findUserById(id){
+    var db = loadDB();
+    for(var i=0;i<db.users.length;i++){
+      if(db.users[i].id === id) return db.users[i];
+    }
+    return null;
+  }
+  function findUserByAccount(account){
+    var db = loadDB();
+    for(var i=0;i<db.users.length;i++){
+      if(db.users[i].account === account) return db.users[i];
+    }
+    return null;
+  }
+
+  // 生成下一个 id
+  function nextId(arr, start){
+    var max = start || 1;
+    for(var i=0;i<arr.length;i++){ if(arr[i].id >= max) max = arr[i].id + 1; }
+    return max;
+  }
+
+  function nowStr(){
+    var d = new Date();
+    var p = function(n){ return n<10 ? '0'+n : ''+n; };
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+
+  /* ===================================================================
+   * 三、权限检查
+   * =================================================================== */
+
+  function getUserRoles(user){
+    if(!user || !user.roles) return ['USER'];
+    return String(user.roles).split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  }
+
+  // 是否拥有某模块权限（任一角色勾选即视为有）
+  function hasPermission(user, permKey){
+    if(!user) return false;
+    var roles = getUserRoles(user);
+    var db = loadDB();
+    var matrix = db.permMatrix;
+    for(var i=0;i<roles.length;i++){
+      var r = roles[i];
+      if(matrix[r] && matrix[r][permKey]) return true;
+    }
+    return false;
+  }
+
+  // 是否含特定角色
+  function hasRole(user, role){
+    return getUserRoles(user).indexOf(role) !== -1;
+  }
+
+  /* ===================================================================
+   * 四、视图路由
+   * =================================================================== */
+
+  var VIEWS = ['view-login','view-change','view-dash','view-browse','view-detail'];
+  var lastViewBeforeDetail = 'view-dash'; // 详情页返回目标
+
+  function showView(viewId){
+    VIEWS.forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      if(id === viewId){ el.classList.remove('hidden'); }
+      else { el.classList.add('hidden'); }
+    });
+    window.scrollTo(0,0);
+  }
+
+  /* ===================================================================
+   * 五、通用工具：alert / escape / modal
+   * =================================================================== */
+
+  function setAlert(containerId, msg, type){
+    var el = document.getElementById(containerId);
+    if(!el) return;
+    if(!msg){ el.innerHTML = ''; return; }
+    var cls = 'alert-' + (type || 'error');
+    el.innerHTML = '<div class="alert ' + cls + '">' + escapeHtml(msg) + '</div>';
+  }
+  function escapeHtml(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  // 通用 modal
+  function openModal(opts){
+    var root = document.getElementById('modalRoot');
+    var mask = document.createElement('div');
+    mask.className = 'modal-mask';
+    mask.innerHTML =
+      '<div class="modal">' +
+        '<div class="modal-head"><h3></h3><button class="modal-close" type="button">×</button></div>' +
+        '<div class="modal-body"></div>' +
+        '<div class="modal-foot"></div>' +
+      '</div>';
+    root.appendChild(mask);
+    var modalEl = mask.querySelector('.modal');
+    modalEl.querySelector('h3').textContent = opts.title || '';
+    var body = modalEl.querySelector('.modal-body');
+    if(typeof opts.body === 'string'){ body.innerHTML = opts.body; }
+    else if(opts.body instanceof Node){ body.appendChild(opts.body); }
+    var foot = modalEl.querySelector('.modal-foot');
+    (opts.foot || []).forEach(function(btn){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm ' + (btn.cls || '');
+      b.textContent = btn.text;
+      b.addEventListener('click', function(){
+        if(btn.onClick) btn.onClick(body, closeFn);
+      });
+      foot.appendChild(b);
+    });
+    function closeFn(){ root.removeChild(mask); }
+    modalEl.querySelector('.modal-close').addEventListener('click', closeFn);
+    mask.addEventListener('click', function(e){
+      if(e.target === mask) closeFn();
+    });
+    return { close:closeFn, body:body, modal:modalEl };
+  }
+
+  /* ===================================================================
+   * 六、登录页
+   * =================================================================== */
+
+  var loginAccountEl = document.getElementById('loginAccount');
+  var loginPasswordEl = document.getElementById('loginPassword');
+
+  document.getElementById('btnLogin').addEventListener('click', doLogin);
+  loginAccountEl.addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
+  loginPasswordEl.addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
+
+  // 点击 hint 中的账号自动填充
+  document.querySelectorAll('#view-login .hint code[data-account]').forEach(function(code){
+    code.addEventListener('click', function(){
+      loginAccountEl.value = code.getAttribute('data-account');
+      loginPasswordEl.value = 'Welcome@2026';
+      loginAccountEl.focus();
+    });
+  });
+
+  function doLogin(){
+    setAlert('loginAlert','');
+    var account = loginAccountEl.value.trim();
+    var password = loginPasswordEl.value;
+    if(!account || !password){
+      setAlert('loginAlert','请输入账号和密码','error');
+      return;
+    }
+    var u = findUserByAccount(account);
+    if(!u || u.password !== password){
+      setAlert('loginAlert','账号或密码错误','error');
+      return;
+    }
+    if(u.enabled !== 1 && u.enabled !== true){
+      setAlert('loginAlert','该账号已被禁用，请联系管理员','error');
+      return;
+    }
+    // 写 session
+    var db = loadDB();
+    db.session.userId = u.id;
+    saveDB(db);
+
+    if(u.mustChangePassword === 1 || u.mustChangePassword === true){
+      // 进改密页
+      document.getElementById('newPwd').value = '';
+      document.getElementById('confirmPwd').value = '';
+      setAlert('changeAlert','');
+      setError('errNew','');
+      setError('errConfirm','');
+      showView('view-change');
+    }else{
+      // 默认进入作品市场
+      lastViewBeforeDetail = 'view-browse';
+      currentTab = 'dashboard';
+      showView('view-browse');
+      renderBrowse();
+    }
+  }
+
+  /* ===================================================================
+   * 七、改密页
+   * =================================================================== */
+
+  var newPwdEl = document.getElementById('newPwd');
+  var confirmPwdEl = document.getElementById('confirmPwd');
+  document.getElementById('btnChange').addEventListener('click', doChange);
+
+  function setError(id, msg){
+    var el = document.getElementById(id);
+    if(el) el.textContent = msg || '';
+  }
+
+  function doChange(){
+    setAlert('changeAlert','');
+    var newp = newPwdEl.value;
+    var cfm  = confirmPwdEl.value;
+    setError('errNew','');
+    setError('errConfirm','');
+
+    if(!newp || !cfm){
+      setAlert('changeAlert','请填写全部字段','error');
+      return;
+    }
+    // 长度 ≥ 8
+    if(newp.length < 8){
+      setError('errNew','新密码至少 8 位');
+      return;
+    }
+    // 含字母+数字
+    if(!/[a-zA-Z]/.test(newp) || !/\d/.test(newp)){
+      setError('errNew','密码必须包含字母和数字');
+      return;
+    }
+    // 两次一致
+    if(newp !== cfm){
+      setError('errConfirm','两次输入不一致');
+      return;
+    }
+
+    // 更新当前用户
+    var db = loadDB();
+    for(var i=0;i<db.users.length;i++){
+      if(db.users[i].id === db.session.userId){
+        db.users[i].password = newp;
+        db.users[i].mustChangePassword = 0;
+        db.users[i].updatedAt = nowStr();
+        break;
+      }
+    }
+    saveDB(db);
+    setAlert('changeAlert','密码修改成功，即将进入作品市场','success');
+    setTimeout(function(){
+      // 默认进入作品市场
+      lastViewBeforeDetail = 'view-browse';
+      currentTab = 'dashboard';
+      showView('view-browse');
+      renderBrowse();
+    }, 700);
+  }
+
+  // 密码显示切换
+  document.querySelectorAll('.toggle-pw').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-target');
+      var inp = document.getElementById(id);
+      if(!inp) return;
+      if(inp.type === 'password'){ inp.type = 'text'; btn.textContent = '🙈'; }
+      else { inp.type = 'password'; btn.textContent = '👁'; }
+    });
+  });
+
+  /* ===================================================================
+   * 八、工作台（Tab 系统）
+   * =================================================================== */
+
+  var TAB_DEFS = [
+    { key:'dashboard', name:'仪表盘',     perm:null,           render:renderDashboardTab },
+    { key:'ranking',   name:'首页排行',   perm:'ranking',      render:renderRankingTab },
+    { key:'mine',      name:'我的作品',   perm:'mine',          render:renderMineTab },
+    { key:'judge',     name:'评委打分',   perm:'rate',          judgeOnly:true, render:renderJudgeTab },
+    { key:'review',    name:'待审作品',   perm:'review',        render:renderReviewTab },
+    { key:'users',     name:'用户管理',   perm:'userMgmt',     render:renderUsersTab },
+    { key:'perm',      name:'权限矩阵',   perm:'permEdit',      render:renderPermTab }
+  ];
+
+  var currentTab = 'dashboard';
+
+  function renderDashboard(){
+    var user = currentUser();
+    if(!user){ showView('view-login'); return; }
+
+    // 顶栏
+    document.getElementById('curUsername').textContent = user.username + '（' + user.account + '）';
+    var rolesBox = document.getElementById('curRoles');
+    rolesBox.innerHTML = '';
+    getUserRoles(user).forEach(function(r){
+      var span = document.createElement('span');
+      span.className = 'role-tag tag-' + r;
+      span.textContent = r;
+      rolesBox.appendChild(span);
+    });
+
+    // 生成 tab
+    var tabsBox = document.getElementById('dashTabs');
+    tabsBox.innerHTML = '';
+    TAB_DEFS.forEach(function(t){
+      var visible = false;
+      if(t.perm === null){ visible = true; }
+      else if(t.judgeOnly){ visible = hasRole(user,'JUDGE') && hasPermission(user, t.perm); }
+      else { visible = hasPermission(user, t.perm); }
+      if(!visible) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tab-btn' + (t.key === currentTab ? ' active' : '');
+      btn.textContent = t.name;
+      btn.setAttribute('data-tab', t.key);
+      btn.addEventListener('click', function(){
+        currentTab = t.key;
+        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        t.render(user);
+      });
+      tabsBox.appendChild(btn);
+    });
+
+    // 默认渲染当前 tab（若当前 tab 不可见则退回 dashboard）
+    var visibleKeys = Array.prototype.slice.call(tabsBox.querySelectorAll('.tab-btn')).map(function(b){
+      return b.getAttribute('data-tab');
+    });
+    if(visibleKeys.indexOf(currentTab) === -1){ currentTab = 'dashboard'; }
+
+    // 触发当前 tab 渲染
+    var activeDef = TAB_DEFS.filter(function(t){ return t.key === currentTab; })[0];
+    if(activeDef){ activeDef.render(user); }
+  }
+
+  function currentUser(){
+    var db = loadDB();
+    if(!db.session.userId) return null;
+    return findUserById(db.session.userId);
+  }
+
+  function setDashBody(html){
+    document.getElementById('dashBody').innerHTML = html;
+  }
+  function setDashBodyNode(node){
+    var box = document.getElementById('dashBody');
+    box.innerHTML = '';
+    box.appendChild(node);
+  }
+
+  /* ----- 8.1 仪表盘 Tab ----- */
+  function renderDashboardTab(user){
+    var db = loadDB();
+    var publishedCount = db.submissions.filter(function(s){ return s.status === 'PUBLISHED'; }).length;
+    var mySubCount = db.submissions.filter(function(s){ return s.authorId === user.id; }).length;
+    var myRateCount = db.ratings.filter(function(r){ return r.userId === user.id; }).length;
+    var totalRateCount = db.ratings.length;
+
+    var rolesHtml = getUserRoles(user).map(function(r){
+      return '<span class="role-tag tag-'+r+'">'+r+'</span>';
+    }).join('');
+    var letter = (user.username || user.account || 'U').charAt(0).toUpperCase();
+
+    var html =
+      '<div class="dash-welcome">' +
+        '<div class="avatar">'+escapeHtml(letter)+'</div>' +
+        '<div class="welcome-text">' +
+          '<div class="hi">Hi, '+escapeHtml(user.username)+'！</div>' +
+          '<div class="meta">部门：'+escapeHtml(user.department||'—')+' · 积分：<b>'+escapeHtml(String(user.points||0))+'</b></div>' +
+          '<div class="role-tags">'+rolesHtml+'</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="stats-grid">' +
+        '<div class="stat-card"><div class="stat-label">已发布作品</div><div class="stat-value">'+publishedCount+'</div><div class="stat-foot">全市场</div></div>' +
+        '<div class="stat-card"><div class="stat-label">总评分次数</div><div class="stat-value">'+totalRateCount+'</div><div class="stat-foot">全市场</div></div>' +
+        '<div class="stat-card"><div class="stat-label">我的作品</div><div class="stat-value">'+mySubCount+'</div><div class="stat-foot">含全部状态</div></div>' +
+        '<div class="stat-card"><div class="stat-label">我的评分</div><div class="stat-value">'+myRateCount+'</div><div class="stat-foot">我提交过的评分</div></div>' +
+      '</div>';
+
+    // 给「进入作品市场」按钮也绑定（在顶栏，单独绑定）
+    setDashBody(html);
+  }
+
+  /* ----- 8.2 首页排行 Tab ----- */
+  function renderRankingTab(user){
+    var db = loadDB();
+    var published = db.submissions.filter(function(s){ return s.status === 'PUBLISHED'; });
+    // 综合分 = ratingCount*0.6 + ratingAvg*0.4
+    published.forEach(function(s){
+      s._score = (s.ratingCount||0)*0.6 + (s.ratingAvg||0)*0.4;
+    });
+    published.sort(function(a,b){ return b._score - a._score; });
+    var top = published.slice(0,10);
+
+    var html = '<div class="alert alert-info">综合分 = 评分次数×0.6 + 平均分×0.4，展示 Top 10。</div>';
+    if(top.length === 0){
+      html += '<div class="empty-row" style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted);">暂无已发布作品</div>';
+    }else{
+      html += '<div class="rank-list">';
+      top.forEach(function(s, idx){
+        var letter = (s.title||'A').charAt(0).toUpperCase();
+        var avg = (s.ratingAvg||0).toFixed(2);
+        html +=
+          '<div class="rank-item" data-sid="'+s.id+'">' +
+            '<div class="rank-no">'+(idx+1)+'</div>' +
+            '<div class="rank-thumb">'+escapeHtml(letter)+'</div>' +
+            '<div class="rank-info">' +
+              '<div class="rank-title">'+escapeHtml(s.title)+'</div>' +
+              '<div class="rank-sub">'+escapeHtml(s.authorName||'—')+' · '+escapeHtml(workTypeLabel(s))+'</div>' +
+            '</div>' +
+            '<div class="rank-score">⭐ '+avg+'<br/><span style="color:var(--text-muted);font-weight:400;font-size:11px;">'+(s.ratingCount||0)+' 次评分</span></div>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+    setDashBody(html);
+
+    // 绑定点击进详情
+    document.querySelectorAll('#dashBody .rank-item').forEach(function(el){
+      el.addEventListener('click', function(){
+        var sid = parseInt(el.getAttribute('data-sid'),10);
+        lastViewBeforeDetail = 'view-dash';
+        openDetail(sid);
+      });
+    });
+  }
+
+  /* ----- 8.3 我的作品 Tab ----- */
+  function renderMineTab(user){
+    var db = loadDB();
+    var mine = db.submissions.filter(function(s){ return s.authorId === user.id; });
+    mine.sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+
+    var html =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+        '<div style="font-size:14px;font-weight:700;">我的作品（'+mine.length+'）</div>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="btnUpload">+ 上传作品</button>' +
+      '</div>';
+
+    if(mine.length === 0){
+      html += '<div class="empty-row" style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted);">您还没有上传过作品，点击右上角「上传作品」开始</div>';
+    }else{
+      html += '<table class="data-table"><thead><tr>' +
+        '<th>标题</th><th style="width:110px">类型</th>' +
+        '<th style="width:80px">状态</th><th style="width:80px">下载</th><th style="width:90px">平均分</th>' +
+        '<th style="width:160px">创建时间</th>' +
+        '</tr></thead><tbody>';
+      mine.forEach(function(s){
+        var statusChip = '<span class="chip chip-status-'+s.status+'">'+escapeHtml(STATUS_LABELS[s.status]||s.status)+'</span>';
+        var rejectNote = s.status === 'REJECTED' && s.rejectReason ? '<div style="font-size:11px;color:var(--danger);margin-top:4px;">驳回：'+escapeHtml(s.rejectReason)+'</div>' : '';
+        html += '<tr>' +
+          '<td><b>'+escapeHtml(s.title)+'</b>'+rejectNote+'<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+escapeHtml(workDesc(s))+'</div></td>' +
+          '<td>'+escapeHtml(workTypeLabel(s))+'</td>' +
+          '<td>'+statusChip+'</td>' +
+          '<td>'+(s.downloadCount||0)+'</td>' +
+          '<td>'+(s.ratingAvg||0).toFixed(2)+' ('+(s.ratingCount||0)+')</td>' +
+          '<td>'+escapeHtml(s.createdAt||'—')+'</td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    setDashBody(html);
+
+    var btnUp = document.getElementById('btnUpload');
+    if(btnUp) btnUp.addEventListener('click', function(){ openUploadModal(user); });
+  }
+
+  /* ----- 8.4 评委打分 Tab（仅 JUDGE 可见） ----- */
+  function renderJudgeTab(user){
+    var db = loadDB();
+    var published = db.submissions.filter(function(s){ return s.status === 'PUBLISHED'; });
+
+    var html = '<div class="alert alert-info">作为评委，您可对已发布作品进行打分。点击「去打分」进入作品详情完成评分（需先下载作品）。</div>';
+    if(published.length === 0){
+      html += '<div class="empty-row" style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted);">暂无可打分的作品</div>';
+    }else{
+      html += '<table class="data-table"><thead><tr>' +
+        '<th>标题</th><th>作者</th><th style="width:110px">类型</th>' +
+        '<th style="width:90px">平均分</th>' +
+        '<th style="width:140px">我的评分状态</th><th style="width:90px">操作</th>' +
+        '</tr></thead><tbody>';
+      published.forEach(function(s){
+        var myRating = db.ratings.filter(function(r){ return r.submissionId === s.id && r.userId === user.id; })[0];
+        var statusText = myRating ? '已评 '+((myRating.easeOfUse+myRating.businessValue+myRating.techQuality+myRating.innovation)/4).toFixed(1) : '<span style="color:var(--text-muted)">未评</span>';
+        html += '<tr>' +
+          '<td><b>'+escapeHtml(s.title)+'</b></td>' +
+          '<td>'+escapeHtml(s.authorName||'—')+'</td>' +
+          '<td>'+escapeHtml(workTypeLabel(s))+'</td>' +
+          '<td>'+(s.ratingAvg||0).toFixed(2)+'</td>' +
+          '<td>'+statusText+'</td>' +
+          '<td><button class="btn btn-primary btn-sm" data-judge="'+s.id+'">去打分</button></td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    setDashBody(html);
+
+    document.querySelectorAll('#dashBody [data-judge]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var sid = parseInt(btn.getAttribute('data-judge'),10);
+        lastViewBeforeDetail = 'view-dash';
+        openDetail(sid);
+      });
+    });
+  }
+
+  /* ----- 8.5 待审作品 Tab ----- */
+  function renderReviewTab(user){
+    var db = loadDB();
+    var pending = db.submissions.filter(function(s){ return s.status === 'PENDING'; });
+
+    var html = '<div class="alert alert-warning">待审作品列表（status=PENDING），可通过「通过」发布或「拒绝」驳回。</div>';
+    if(pending.length === 0){
+      html += '<div class="empty-row" style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted);">暂无待审作品</div>';
+    }else{
+      html += '<table class="data-table"><thead><tr>' +
+        '<th>标题</th><th>作者</th><th style="width:110px">类型</th>' +
+        '<th style="width:160px">提交时间</th>' +
+        '<th style="width:200px">操作</th>' +
+        '</tr></thead><tbody>';
+      pending.forEach(function(s){
+        html += '<tr>' +
+          '<td><b>'+escapeHtml(s.title)+'</b><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+escapeHtml(workDesc(s))+'</div></td>' +
+          '<td>'+escapeHtml(s.authorName||'—')+'</td>' +
+          '<td>'+escapeHtml(workTypeLabel(s))+'</td>' +
+          '<td>'+escapeHtml(s.createdAt||'—')+'</td>' +
+          '<td><div class="op-cell">' +
+            '<button class="btn btn-success btn-sm" data-approve="'+s.id+'">通过</button>' +
+            '<button class="btn btn-danger btn-sm" data-reject="'+s.id+'">拒绝</button>' +
+          '</div></td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    setDashBody(html);
+
+    document.querySelectorAll('#dashBody [data-approve]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var sid = parseInt(btn.getAttribute('data-approve'),10);
+        approveSubmission(sid, user);
+      });
+    });
+    document.querySelectorAll('#dashBody [data-reject]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var sid = parseInt(btn.getAttribute('data-reject'),10);
+        rejectSubmission(sid, user);
+      });
+    });
+  }
+
+  function approveSubmission(sid, user){
+    var db = loadDB();
+    for(var i=0;i<db.submissions.length;i++){
+      if(db.submissions[i].id === sid){
+        db.submissions[i].status = 'PUBLISHED';
+        db.submissions[i].reviewedBy = user.id;
+        db.submissions[i].reviewedAt = nowStr();
+        db.submissions[i].publishedAt = nowStr();
+        db.submissions[i].updatedAt = nowStr();
+        db.submissions[i].rejectReason = '';
+        break;
+      }
+    }
+    saveDB(db);
+    renderReviewTab(user);
+  }
+
+  function rejectSubmission(sid, user){
+    var reason = prompt('请输入驳回原因：', '请补充详细说明');
+    if(reason === null) return;
+    if(!reason.trim()){ alert('驳回原因不能为空'); return; }
+    var db = loadDB();
+    for(var i=0;i<db.submissions.length;i++){
+      if(db.submissions[i].id === sid){
+        db.submissions[i].status = 'REJECTED';
+        db.submissions[i].reviewedBy = user.id;
+        db.submissions[i].reviewedAt = nowStr();
+        db.submissions[i].updatedAt = nowStr();
+        db.submissions[i].rejectReason = reason.trim();
+        break;
+      }
+    }
+    saveDB(db);
+    renderReviewTab(user);
+  }
+
+  /* ----- 8.6 用户管理 Tab ----- */
+  function renderUsersTab(user){
+    var db = loadDB();
+    var html =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+        '<div style="font-size:14px;font-weight:700;">用户管理（'+db.users.length+'）</div>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="btnNewUser">+ 新建用户</button>' +
+      '</div>';
+    html += '<table class="data-table"><thead><tr>' +
+      '<th style="width:120px">账号</th><th style="width:120px">姓名</th>' +
+      '<th>邮箱</th><th style="width:100px">部门</th><th style="width:120px">电话</th>' +
+      '<th style="width:200px">角色</th><th style="width:80px">积分</th>' +
+      '<th style="width:100px">启用</th><th style="width:200px">操作</th>' +
+      '</tr></thead><tbody>';
+    db.users.forEach(function(u){
+      var cls = (u.enabled !== 1 && u.enabled !== true) ? 'row-disabled' : '';
+      var roleHtml = getUserRoles(u).map(function(r){
+        return '<span class="role-tag tag-'+r+'">'+r+'</span>';
+      }).join(' ');
+      var enabled = (u.enabled === 1 || u.enabled === true);
+      var mcp = (u.mustChangePassword === 1 || u.mustChangePassword === true);
+      html += '<tr class="'+cls+'">' +
+        '<td><b>'+escapeHtml(u.account)+'</b>'+(mcp?' <span class="role-tag tag-JUDGE">待改密</span>':'')+'</td>' +
+        '<td>'+escapeHtml(u.username||'—')+'</td>' +
+        '<td>'+escapeHtml(u.email||'—')+'</td>' +
+        '<td>'+escapeHtml(u.department||'—')+'</td>' +
+        '<td>'+escapeHtml(u.mobile||'—')+'</td>' +
+        '<td>'+roleHtml+'</td>' +
+        '<td>'+(u.points||0)+'</td>' +
+        '<td><span class="switch '+(enabled?'on':'')+'" data-toggle="'+u.id+'"><span class="dot"></span><span class="switch-label">'+(enabled?'启用':'禁用')+'</span></span></td>' +
+        '<td><div class="op-cell">' +
+          '<button class="btn btn-sm" data-edit="'+u.id+'">编辑</button>' +
+          '<button class="btn btn-sm btn-warning" data-reset="'+u.id+'">重置密码</button>' +
+        '</div></td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    setDashBody(html);
+
+    document.getElementById('btnNewUser').addEventListener('click', openNewUserModal);
+    document.querySelectorAll('#dashBody [data-toggle]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var uid = parseInt(el.getAttribute('data-toggle'),10);
+        toggleUserEnabled(uid, user);
+      });
+    });
+    document.querySelectorAll('#dashBody [data-edit]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var uid = parseInt(btn.getAttribute('data-edit'),10);
+        openEditUserModal(uid, user);
+      });
+    });
+    document.querySelectorAll('#dashBody [data-reset]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var uid = parseInt(btn.getAttribute('data-reset'),10);
+        resetPassword(uid, user);
+      });
+    });
+  }
+
+  function toggleUserEnabled(uid, user){
+    var db = loadDB();
+    for(var i=0;i<db.users.length;i++){
+      if(db.users[i].id === uid){
+        var enabled = db.users[i].enabled;
+        db.users[i].enabled = (enabled === 1 || enabled === true) ? 0 : 1;
+        db.users[i].updatedAt = nowStr();
+        saveDB(db);
+        break;
+      }
+    }
+    renderUsersTab(user);
+  }
+
+  function resetPassword(uid, user){
+    if(!confirm('确认将该用户密码重置为 Welcome@2026 并要求首次登录修改？')) return;
+    var db = loadDB();
+    for(var i=0;i<db.users.length;i++){
+      if(db.users[i].id === uid){
+        db.users[i].password = 'Welcome@2026';
+        db.users[i].mustChangePassword = 1;
+        db.users[i].updatedAt = nowStr();
+        break;
+      }
+    }
+    saveDB(db);
+    renderUsersTab(user);
+  }
+
+  function openNewUserModal(){
+    var body =
+      '<div id="modalAlert"></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-row-2">' +
+          '<div class="field"><label>姓名 *</label><input id="nuUsername" type="text" placeholder="显示名" /></div>' +
+          '<div class="field"><label>邮箱 *</label><input id="nuEmail" type="email" placeholder="xxx@company.com（账号自动取邮箱前缀）" /></div>' +
+        '</div>' +
+        '<div class="form-row-2">' +
+          '<div class="field"><label>手机</label><input id="nuMobile" type="text" placeholder="可选" /></div>' +
+          '<div class="field"><label>部门</label><input id="nuDept" type="text" placeholder="如 研发部" /></div>' +
+        '</div>' +
+        '<div class="field"><label>角色（多选，USER 默认必带）</label>' +
+          '<div class="checkbox-group" id="nuRoles">' +
+            '<label class="checkbox-item"><input type="checkbox" value="OPERATOR" /> OPERATOR 运营</label>' +
+            '<label class="checkbox-item"><input type="checkbox" value="JUDGE" /> JUDGE 评委</label>' +
+            '<label class="checkbox-item"><input type="checkbox" value="DEPT_HEAD" /> DEPT_HEAD 部门负责人</label>' +
+            '<label class="checkbox-item"><input type="checkbox" value="ADMIN" /> ADMIN 管理员</label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="field-help">初始密码为 <code style="background:#eef2ff;color:#4338ca;padding:1px 5px;border-radius:4px;">Welcome@2026</code>，用户首次登录后需修改。</div>' +
+      '</div>';
+
+    openModal({
+      title:'新建用户',
+      body:body,
+      foot:[
+        { text:'取消', cls:'', onClick:function(_,close){ close(); } },
+        { text:'确认创建', cls:'btn-primary', onClick:function(bodyEl, close){
+          var alertId = 'modalAlert';
+          var uname = bodyEl.querySelector('#nuUsername').value.trim();
+          var email = bodyEl.querySelector('#nuEmail').value.trim();
+          var acc = email.split('@')[0];
+          var mobile = bodyEl.querySelector('#nuMobile').value.trim();
+          var dept = bodyEl.querySelector('#nuDept').value.trim();
+          var roles = [];
+          bodyEl.querySelectorAll('#nuRoles input:checked').forEach(function(cb){ roles.push(cb.value); });
+
+          var alertBox = bodyEl.querySelector('#modalAlert');
+          function err(msg){ alertBox.innerHTML = '<div class="alert alert-error">'+escapeHtml(msg)+'</div>'; }
+          if(!uname){ err('请输入姓名'); return; }
+          if(!email || email.indexOf('@') === -1 || !email.split('@')[0]){ err('邮箱格式不正确'); return; }
+
+          var db = loadDB();
+          for(var i=0;i<db.users.length;i++){
+            if(db.users[i].account === acc){ err('账号已存在'); return; }
+            if(db.users[i].email === email){ err('邮箱已存在'); return; }
+          }
+          var fullRoles = ['USER'].concat(roles);
+          var nu = {
+            id: nextId(db.users),
+            account: acc,
+            password:'Welcome@2026',
+            username: uname,
+            email: email,
+            mobile: mobile,
+            department: dept || '—',
+            roles: fullRoles.join(','),
+            points: 0,
+            enabled: 1,
+            mustChangePassword: 1,
+            createdAt: nowStr(),
+            updatedAt: nowStr()
+          };
+          db.users.push(nu);
+          saveDB(db);
+          close();
+          renderUsersTab(currentUser());
+        } }
+      ]
+    });
+
+    // checkbox 视觉同步
+    setTimeout(function(){
+      document.querySelectorAll('#nuRoles input').forEach(function(cb){
+        cb.addEventListener('change', function(){
+          var p = cb.closest('.checkbox-item');
+          if(cb.checked) p.classList.add('checked'); else p.classList.remove('checked');
+        });
+      });
+    }, 0);
+  }
+
+  function openEditUserModal(uid, user){
+    var u = findUserById(uid);
+    if(!u) return;
+    var body =
+      '<div id="modalAlert"></div>' +
+      '<div class="form-grid">' +
+        '<div class="field"><label>账号（邮箱前缀派生，不可改）</label><input id="euAccount" type="text" value="'+escapeHtml(u.account)+'" readonly style="background:#f1f5f9;color:#94a3b8;" /></div>' +
+        '<div class="field"><label>姓名 *</label><input id="euUsername" type="text" value="'+escapeHtml(u.username||'')+'" /></div>' +
+        '<div class="form-row-2">' +
+          '<div class="field"><label>邮箱</label><input id="euEmail" type="email" value="'+escapeHtml(u.email||'')+'" /></div>' +
+          '<div class="field"><label>手机</label><input id="euMobile" type="text" value="'+escapeHtml(u.mobile||'')+'" /></div>' +
+        '</div>' +
+        '<div class="form-row-2">' +
+          '<div class="field"><label>部门</label><input id="euDept" type="text" value="'+escapeHtml(u.department||'')+'" /></div>' +
+          '<div class="field"><label>积分</label><input id="euPoints" type="number" value="'+(u.points||0)+'" /></div>' +
+        '</div>' +
+        '<div class="field"><label>角色（多选，USER 默认勾选不可取消）</label>' +
+          '<div class="checkbox-group" id="euRoles">' +
+            ['OPERATOR','JUDGE','DEPT_HEAD','ADMIN'].map(function(r){
+              var checked = getUserRoles(u).indexOf(r) !== -1 ? 'checked' : '';
+              return '<label class="checkbox-item '+(checked?'checked':'')+'"><input type="checkbox" value="'+r+'" '+checked+' /> '+r+'</label>';
+            }).join('') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    openModal({
+      title:'编辑用户 - '+u.account,
+      body:body,
+      foot:[
+        { text:'取消', cls:'', onClick:function(_,close){ close(); } },
+        { text:'保存', cls:'btn-primary', onClick:function(bodyEl, close){
+          var uname = bodyEl.querySelector('#euUsername').value.trim();
+          var email = bodyEl.querySelector('#euEmail').value.trim();
+          var mobile = bodyEl.querySelector('#euMobile').value.trim();
+          var dept = bodyEl.querySelector('#euDept').value.trim();
+          var points = parseInt(bodyEl.querySelector('#euPoints').value,10) || 0;
+          var roles = ['USER'];
+          bodyEl.querySelectorAll('#euRoles input:checked').forEach(function(cb){ roles.push(cb.value); });
+
+          var alertBox = bodyEl.querySelector('#modalAlert');
+          function err(msg){ alertBox.innerHTML = '<div class="alert alert-error">'+escapeHtml(msg)+'</div>'; }
+          if(!uname){ err('请输入姓名'); return; }
+
+          var db = loadDB();
+          var newAcc = email.split('@')[0];
+          for(var i=0;i<db.users.length;i++){
+            if(db.users[i].id === uid){
+              db.users[i].account = newAcc;
+              db.users[i].username = uname;
+              db.users[i].email = email;
+              db.users[i].mobile = mobile;
+              db.users[i].department = dept;
+              db.users[i].points = points;
+              db.users[i].roles = roles.join(',');
+              db.users[i].updatedAt = nowStr();
+              break;
+            }
+          }
+          saveDB(db);
+          close();
+          renderUsersTab(currentUser());
+        } }
+      ]
+    });
+
+    setTimeout(function(){
+      document.querySelectorAll('#euRoles input').forEach(function(cb){
+        cb.addEventListener('change', function(){
+          var p = cb.closest('.checkbox-item');
+          if(cb.checked) p.classList.add('checked'); else p.classList.remove('checked');
+        });
+      });
+    }, 0);
+  }
+
+  /* ----- 8.7 权限矩阵 Tab ----- */
+  function renderPermTab(user){
+    var db = loadDB();
+    var matrix = db.permMatrix;
+
+    var html = '<div class="alert alert-info">权限矩阵：勾选某角色对应模块的权限后，点击「保存」生效，立即影响所有 Tab 的显隐。</div>';
+    html += '<table class="perm-table"><thead><tr><th>模块 \\ 角色</th>';
+    ROLES.forEach(function(r){ html += '<th>'+r+'</th>'; });
+    html += '</tr></thead><tbody>';
+    PERM_MODULES.forEach(function(m){
+      html += '<tr><td>'+escapeHtml(m.name)+'</td>';
+      ROLES.forEach(function(r){
+        var checked = matrix[r] && matrix[r][m.key] ? 'checked' : '';
+        html += '<td><input type="checkbox" class="perm-check" data-role="'+r+'" data-perm="'+m.key+'" '+checked+' /></td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div style="margin-top:14px;text-align:right;"><button type="button" class="btn btn-primary btn-sm" id="btnSavePerm">保存权限</button> <button type="button" class="btn btn-sm" id="btnResetPerm">恢复默认</button></div>';
+    setDashBody(html);
+
+    document.getElementById('btnSavePerm').addEventListener('click', function(){
+      var db2 = loadDB();
+      ROLES.forEach(function(r){
+        if(!db2.permMatrix[r]) db2.permMatrix[r] = {};
+        PERM_MODULES.forEach(function(m){
+          var cb = document.querySelector('.perm-check[data-role="'+r+'"][data-perm="'+m.key+'"]');
+          db2.permMatrix[r][m.key] = cb ? cb.checked : false;
+        });
+      });
+      saveDB(db2);
+      // 提示并重渲染
+      var alertBox = document.createElement('div');
+      alertBox.className = 'alert alert-success';
+      alertBox.textContent = '权限已保存，Tab 显隐已更新。';
+      var body = document.getElementById('dashBody');
+      body.insertBefore(alertBox, body.firstChild);
+      // 重新渲染 tab 条
+      setTimeout(function(){ renderDashboard(); }, 600);
+    });
+    document.getElementById('btnResetPerm').addEventListener('click', function(){
+      if(!confirm('确认恢复默认权限矩阵？')) return;
+      var db2 = loadDB();
+      db2.permMatrix = clone(DEFAULT_PERM_MATRIX);
+      saveDB(db2);
+      renderPermTab(user);
+    });
+  }
+
+  /* ===================================================================
+   * 九、上传作品 Modal
+   * =================================================================== */
+
+  function openUploadModal(user){
+    var body =
+      '<div id="modalAlert"></div>' +
+      '<div class="form-grid">' +
+        // 1. 作品截图
+        '<div class="field"><label>作品截图</label>' +
+          '<div id="upScreenshot" class="badge-mock">点击此处模拟选择截图</div>' +
+        '</div>' +
+        // 2. 作品名称
+        '<div class="field"><label>作品名称 *</label><input id="upTitle" type="text" placeholder="如 智能合同审查助手" /></div>' +
+        // 3. 作品类型（选其他显示自定义输入）
+        '<div class="field"><label>作品类型 *</label><select id="upType">' +
+          '<option value="自动化脚本">自动化脚本</option>' +
+          '<option value="智能助手">智能助手</option>' +
+          '<option value="提示词模板">提示词模板</option>' +
+          '<option value="其他">其他</option>' +
+        '</select>' +
+          '<div class="cond-field" id="upTypeOtherWrap"><input id="upTypeOther" type="text" placeholder="请填写自定义类型" /></div>' +
+        '</div>' +
+        // 4. 适用场景
+        '<div class="field"><label>适用场景 *</label><textarea id="upScenario" placeholder="描述使用场景与痛点"></textarea></div>' +
+        // 5. 功能说明
+        '<div class="field"><label>功能说明 *</label><textarea id="upFunctionDesc" placeholder="详细描述功能与实现"></textarea></div>' +
+        // 6. 预期效益
+        '<div class="field"><label>预期效益</label><textarea id="upExpectedBenefit" placeholder="量化或定性描述效益"></textarea></div>' +
+        // 7. 使用方法
+        '<div class="field"><label>使用方法</label><textarea id="upUsageMethod" placeholder="使用步骤"></textarea></div>' +
+        // 8. 是否需要公司资源支持（radio 是/否，选是显示 textarea）
+        '<div class="field"><label>是否需要公司资源支持 *</label>' +
+          '<div class="radio-group" id="upSupportRadio">' +
+            '<label class="radio-item checked"><input type="radio" name="upSupport" value="否" checked /> 否</label>' +
+            '<label class="radio-item"><input type="radio" name="upSupport" value="是" /> 是</label>' +
+          '</div>' +
+          '<div class="cond-field" id="upSupportDescWrap"><textarea id="upSupportDesc" placeholder="具体说明需要哪些公司资源"></textarea></div>' +
+        '</div>' +
+        // 9. 是否为本人独立开发（radio 是/否，选否显示 textarea）
+        '<div class="field"><label>是否为本人独立开发 *</label>' +
+          '<div class="radio-group" id="upIndepRadio">' +
+            '<label class="radio-item checked"><input type="radio" name="upIndep" value="是" checked /> 是</label>' +
+            '<label class="radio-item"><input type="radio" name="upIndep" value="否" /> 否</label>' +
+          '</div>' +
+          '<div class="cond-field" id="upIndepDescWrap"><textarea id="upIndepDesc" placeholder="具体说明协作者与分工"></textarea></div>' +
+        '</div>' +
+        // 10. 上传附件类型（select 其他显示自定义输入）
+        '<div class="field"><label>上传附件类型 *</label><select id="upAttachmentType">' +
+          '<option value="工具使用说明">工具使用说明</option>' +
+          '<option value="演示视频/截图">演示视频/截图</option>' +
+          '<option value="源代码/文件">源代码/文件</option>' +
+          '<option value="其他">其他</option>' +
+        '</select>' +
+          '<div class="cond-field" id="upAttachmentTypeOtherWrap"><input id="upAttachmentTypeOther" type="text" placeholder="请填写自定义附件类型" /></div>' +
+        '</div>' +
+        // 11. 上传附件（mock）
+        '<div class="field"><label>上传附件</label>' +
+          '<div id="upAttach" class="badge-mock">点击此处模拟选择附件</div>' +
+        '</div>' +
+        '<div class="field-help">提交后作品状态为 PENDING，需运营/管理员审核通过后才会发布到市场。</div>' +
+      '</div>';
+
+    openModal({
+      title:'上传作品',
+      body:body,
+      foot:[
+        { text:'取消', cls:'', onClick:function(_,close){ close(); } },
+        { text:'提交审核', cls:'btn-primary', onClick:function(bodyEl, close){
+          var alertBox = bodyEl.querySelector('#modalAlert');
+          function err(msg){ alertBox.innerHTML = '<div class="alert alert-error">'+escapeHtml(msg)+'</div>'; }
+
+          var title = bodyEl.querySelector('#upTitle').value.trim();
+          var type = bodyEl.querySelector('#upType').value;
+          var typeOther = bodyEl.querySelector('#upTypeOther').value.trim();
+          var scenario = bodyEl.querySelector('#upScenario').value.trim();
+          var functionDesc = bodyEl.querySelector('#upFunctionDesc').value.trim();
+          var expectedBenefit = bodyEl.querySelector('#upExpectedBenefit').value.trim();
+          var usageMethod = bodyEl.querySelector('#upUsageMethod').value.trim();
+          var support = bodyEl.querySelector('input[name="upSupport"]:checked').value;
+          var supportDesc = bodyEl.querySelector('#upSupportDesc').value.trim();
+          var indep = bodyEl.querySelector('input[name="upIndep"]:checked').value;
+          var indepDesc = bodyEl.querySelector('#upIndepDesc').value.trim();
+          var attachmentType = bodyEl.querySelector('#upAttachmentType').value;
+          var attachmentTypeOther = bodyEl.querySelector('#upAttachmentTypeOther').value.trim();
+          var attachmentName = (bodyEl.querySelector('#upAttach').dataset.fileName || '').trim();
+          var screenshotName = (bodyEl.querySelector('#upScreenshot').dataset.fileName || '').trim();
+
+          if(!title){ err('请输入作品名称'); return; }
+          if(type === '其他' && !typeOther){ err('请填写自定义作品类型'); return; }
+          if(!scenario){ err('请填写适用场景'); return; }
+          if(!functionDesc){ err('请填写功能说明'); return; }
+          if(support === '是' && !supportDesc){ err('选「是」时请填写公司资源支持具体说明'); return; }
+          if(indep === '否' && !indepDesc){ err('选「否」时请填写独立开发具体说明'); return; }
+          if(attachmentType === '其他' && !attachmentTypeOther){ err('选「其他」附件时请填写自定义附件类型'); return; }
+
+          var db = loadDB();
+          var author = findUserById(user.id);
+          var ns = {
+            id: nextId(db.submissions, 101),
+            title: title,
+            authorId: author.id,
+            authorName: author.username,
+            type: type,
+            typeOther: typeOther,
+            scenario: scenario,
+            functionDesc: functionDesc,
+            expectedBenefit: expectedBenefit,
+            usageMethod: usageMethod,
+            needCompanySupport: support,
+            supportDesc: supportDesc,
+            isIndependent: indep,
+            independentDesc: indepDesc,
+            attachmentType: attachmentType,
+            attachmentTypeOther: attachmentTypeOther,
+            attachmentName: attachmentName,
+            screenshotName: screenshotName,
+            version: '1.0.0',
+            downloadCount: 0,
+            ratingAvg: 0,
+            ratingCount: 0,
+            status: 'PENDING',
+            rejectReason: '',
+            reviewedBy: null,
+            reviewedAt: null,
+            publishedAt: null,
+            createdAt: nowStr(),
+            updatedAt: nowStr()
+          };
+          db.submissions.push(ns);
+          saveDB(db);
+          close();
+          renderMineTab(currentUser());
+        } }
+      ]
+    });
+
+    setTimeout(function(){
+      // 截图 mock 选择
+      var ss = document.querySelector('#upScreenshot');
+      if(ss){
+        ss.addEventListener('click', function(){
+          ss.classList.add('selected');
+          var fname = 'screenshot-' + Date.now() + '.png';
+          ss.dataset.fileName = fname;
+          ss.textContent = '已选择 ' + fname;
+        });
+      }
+      // 附件 mock 选择
+      var attach = document.querySelector('#upAttach');
+      if(attach){
+        attach.addEventListener('click', function(){
+          attach.classList.add('selected');
+          var fname = 'artifact-' + Date.now() + '.zip';
+          attach.dataset.fileName = fname;
+          attach.textContent = '已选择 ' + fname;
+        });
+      }
+      // 作品类型 select 显隐
+      var upType = document.querySelector('#upType');
+      var typeOtherWrap = document.querySelector('#upTypeOtherWrap');
+      function syncType(){ typeOtherWrap.classList.toggle('show', upType.value === '其他'); }
+      upType.addEventListener('change', syncType); syncType();
+      // 公司资源支持 radio 显隐
+      var supportRadios = document.querySelectorAll('input[name="upSupport"]');
+      var supportDescWrap = document.querySelector('#upSupportDescWrap');
+      supportRadios.forEach(function(r){
+        r.addEventListener('change', function(){
+          supportDescWrap.classList.toggle('show', r.value === '是' && r.checked);
+          // 同步 radio-item .checked 视觉
+          document.querySelectorAll('#upSupportRadio .radio-item').forEach(function(it){
+            it.classList.toggle('checked', it.querySelector('input').checked);
+          });
+        });
+      });
+      // 独立开发 radio 显隐
+      var indepRadios = document.querySelectorAll('input[name="upIndep"]');
+      var indepDescWrap = document.querySelector('#upIndepDescWrap');
+      indepRadios.forEach(function(r){
+        r.addEventListener('change', function(){
+          indepDescWrap.classList.toggle('show', r.value === '否' && r.checked);
+          document.querySelectorAll('#upIndepRadio .radio-item').forEach(function(it){
+            it.classList.toggle('checked', it.querySelector('input').checked);
+          });
+        });
+      });
+      // 附件类型 select 显隐
+      var upAttType = document.querySelector('#upAttachmentType');
+      var attOtherWrap = document.querySelector('#upAttachmentTypeOtherWrap');
+      function syncAtt(){ attOtherWrap.classList.toggle('show', upAttType.value === '其他'); }
+      upAttType.addEventListener('change', syncAtt); syncAtt();
+    }, 0);
+  }
+
+  /* ===================================================================
+   * 十、作品浏览页
+   * =================================================================== */
+
+  // 「返回市场」按钮（dashboard 顶栏）— 回到作品市场
+  document.getElementById('btnGoBrowse').addEventListener('click', function(){
+    lastViewBeforeDetail = 'view-browse';
+    showView('view-browse');
+    renderBrowse();
+  });
+  // 「首页排行」按钮（市场顶栏）— 跳到 dashboard 的首页排行 tab
+  document.getElementById('btnMarketRanking').addEventListener('click', function(){
+    currentTab = 'ranking';
+    showView('view-dash');
+    renderDashboard();
+  });
+  // 「运营后台」按钮（市场顶栏）— 跳到 dashboard
+  document.getElementById('btnMarketDash').addEventListener('click', function(){
+    currentTab = 'dashboard';
+    showView('view-dash');
+    renderDashboard();
+  });
+  // 「退出登录」按钮（市场顶栏）
+  document.getElementById('btnMarketLogout').addEventListener('click', doLogout);
+
+  var browseSearchEl, browseTypeEl, browseDomainEl;
+  function renderBrowse(){
+    if(!browseSearchEl) browseSearchEl = document.getElementById('browseSearch');
+    if(!browseTypeEl) browseTypeEl = document.getElementById('browseType');
+    if(!browseDomainEl) browseDomainEl = document.getElementById('browseDomain');
+
+    // 填充业务域下拉
+    var db = loadDB();
+    var domains = [];
+    db.submissions.forEach(function(s){
+      if(s.businessDomain && domains.indexOf(s.businessDomain) === -1) domains.push(s.businessDomain);
+    });
+    var prevDomain = browseDomainEl.value;
+    browseDomainEl.innerHTML = '<option value="">全部业务域</option>' +
+      domains.map(function(d){ return '<option value="'+escapeHtml(d)+'"'+(d===prevDomain?' selected':'')+'>'+escapeHtml(d)+'</option>'; }).join('');
+
+    // 事件绑定（仅一次）
+    if(!renderBrowse._bound){
+      browseSearchEl.addEventListener('input', renderBrowseGrid);
+      browseTypeEl.addEventListener('change', renderBrowseGrid);
+      browseDomainEl.addEventListener('change', renderBrowseGrid);
+      renderBrowse._bound = true;
+    }
+    renderBrowseGrid();
+  }
+
+  function renderBrowseGrid(){
+    var db = loadDB();
+    var kw = (document.getElementById('browseSearch').value || '').trim().toLowerCase();
+    var type = document.getElementById('browseType').value;
+    var domain = document.getElementById('browseDomain').value;
+
+    var list = db.submissions.filter(function(s){
+      if(s.status !== 'PUBLISHED') return false;
+      if(type && s.type !== type) return false;
+      if(domain && s.businessDomain !== domain) return false;
+      if(kw){
+        var hay = (s.title + ' ' + (s.authorName||'') + ' ' + (s.type||'') + ' ' + (s.typeOther||'') + ' ' + (s.scenario||'') + ' ' + (s.functionDesc||'') + ' ' + (s.shortDesc||'')).toLowerCase();
+        if(hay.indexOf(kw) === -1) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('browseCount').textContent = list.length;
+    var grid = document.getElementById('browseGrid');
+    var empty = document.getElementById('browseEmpty');
+    if(list.length === 0){
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    grid.innerHTML = '';
+    list.forEach(function(s){
+      var letter = (s.title||'A').charAt(0).toUpperCase();
+      var card = document.createElement('div');
+      card.className = 'work-card';
+      card.innerHTML =
+        '<div class="'+workCoverClass(s)+'">'+escapeHtml(letter)+
+          '<span class="type-chip">'+escapeHtml(workTypeLabel(s))+'</span>' +
+        '</div>' +
+        '<div class="work-body">' +
+          '<div class="work-title">'+escapeHtml(s.title)+'</div>' +
+          '<div class="work-author">'+escapeHtml(s.authorName||'—')+'</div>' +
+          '<div class="work-desc">'+escapeHtml(workDesc(s))+'</div>' +
+          '<div class="work-foot">' +
+            '<span class="rating">⭐ '+(s.ratingAvg||0).toFixed(2)+'</span>' +
+            '<span class="dl">下载 '+(s.downloadCount||0)+'</span>' +
+          '</div>' +
+        '</div>';
+      card.addEventListener('click', function(){
+        lastViewBeforeDetail = 'view-browse';
+        openDetail(s.id);
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  /* ===================================================================
+   * 十一、作品详情页
+   * =================================================================== */
+
+  var currentDetailId = null;
+
+  function openDetail(sid){
+    currentDetailId = sid;
+    renderDetail();
+    showView('view-detail');
+  }
+
+  document.getElementById('backFromDetail').addEventListener('click', function(){
+    showView(lastViewBeforeDetail);
+    if(lastViewBeforeDetail === 'view-dash'){ renderDashboard(); }
+    else if(lastViewBeforeDetail === 'view-browse'){ renderBrowse(); }
+  });
+
+  function renderDetail(){
+    var db = loadDB();
+    var s = null;
+    for(var i=0;i<db.submissions.length;i++){
+      if(db.submissions[i].id === currentDetailId){ s = db.submissions[i]; break; }
+    }
+    if(!s){ document.getElementById('detailTitle').textContent = '作品不存在'; return; }
+
+    var user = currentUser();
+
+    // 封面
+    var cover = document.getElementById('detailCover');
+    cover.className = workDetailCoverClass(s);
+    cover.textContent = (s.title||'A').charAt(0).toUpperCase();
+
+    document.getElementById('detailTitle').textContent = s.title;
+    document.getElementById('detailCrumbTitle').textContent = s.title;
+
+    document.getElementById('detailMeta').innerHTML =
+      '作者：<b>'+escapeHtml(s.authorName||'—')+'</b> · 版本 '+escapeHtml(s.version||'1.0.0')+'<br/>' +
+      '创建：'+escapeHtml(s.createdAt||'—')+' · 更新：'+escapeHtml(s.updatedAt||'—');
+
+    // chips：状态 + 类型
+    var chipsHtml = '<span class="chip chip-status-'+s.status+'">'+escapeHtml(STATUS_LABELS[s.status]||s.status)+'</span>';
+    chipsHtml += '<span class="chip">'+escapeHtml(workTypeLabel(s))+'</span>';
+    document.getElementById('detailChips').innerHTML = chipsHtml;
+
+    // 评分汇总数据
+    document.getElementById('detailAvg').textContent = (s.ratingAvg||0).toFixed(2);
+    document.getElementById('detailCount').textContent = String(s.ratingCount||0);
+    document.getElementById('detailDl').textContent = String(s.downloadCount||0);
+
+    // 新增：动态详情区块 detailInfo（截图 / 适用场景 / 功能说明 / 预期效益 / 使用方法 / 公司资源支持 / 独立开发 / 附件）
+    var info = document.getElementById('detailInfo');
+    info.innerHTML = '';
+
+    // 截图占位
+    var letter = (s.title||'A').charAt(0).toUpperCase();
+    var ssName = s.screenshotName || '';
+    var ssHtml = '<div class="detail-section">' +
+      '<h4>作品截图</h4>' +
+      '<div class="screenshot-slot">'+escapeHtml(letter)+(ssName?'<span class="ss-name">'+escapeHtml(ssName)+'</span>':'')+'</div>' +
+    '</div>';
+    info.insertAdjacentHTML('beforeend', ssHtml);
+
+    // 适用场景
+    info.insertAdjacentHTML('beforeend',
+      '<div class="detail-section"><h4>适用场景</h4><p>'+escapeHtml(s.scenario || s.usageScenario || '—')+'</p></div>');
+
+    // 功能说明
+    info.insertAdjacentHTML('beforeend',
+      '<div class="detail-section"><h4>功能说明</h4><p>'+escapeHtml(s.functionDesc || s.detailDesc || '—')+'</p></div>');
+
+    // 预期效益
+    info.insertAdjacentHTML('beforeend',
+      '<div class="detail-section"><h4>预期效益</h4><p>'+escapeHtml(s.expectedBenefit || '—')+'</p></div>');
+
+    // 使用方法
+    info.insertAdjacentHTML('beforeend',
+      '<div class="detail-section"><h4>使用方法</h4><p>'+escapeHtml(s.usageMethod || s.usageScenario || '—')+'</p></div>');
+
+    // 公司资源支持
+    var supportHtml = '<div class="detail-section"><h4>是否需要公司资源支持</h4><p>'+
+      escapeHtml(s.needCompanySupport || '—') +
+      (s.needCompanySupport === '是' && s.supportDesc ? '<br/><span style="color:var(--text-muted);font-size:12px;">具体说明：</span>'+escapeHtml(s.supportDesc) : '') +
+      '</p></div>';
+    info.insertAdjacentHTML('beforeend', supportHtml);
+
+    // 独立开发
+    var indepHtml = '<div class="detail-section"><h4>是否为本人独立开发</h4><p>'+
+      escapeHtml(s.isIndependent || '—') +
+      (s.isIndependent === '否' && s.independentDesc ? '<br/><span style="color:var(--text-muted);font-size:12px;">具体说明：</span>'+escapeHtml(s.independentDesc) : '') +
+      '</p></div>';
+    info.insertAdjacentHTML('beforeend', indepHtml);
+
+    // 附件区块（含下载按钮）
+    var attachHtml = '<div class="detail-section"><h4>附件</h4>' +
+      '<p>附件类型：'+escapeHtml(workAttachmentLabel(s))+'<br/>文件名：'+escapeHtml(s.attachmentName || '—')+'</p>' +
+      '<div class="op-cell" id="detailActions"></div>' +
+    '</div>';
+    info.insertAdjacentHTML('beforeend', attachHtml);
+
+    // 操作区（下载按钮 + 已下载标记）
+    var actions = document.getElementById('detailActions');
+    actions.innerHTML = '';
+    if(s.status === 'PUBLISHED'){
+      var dlBtn = document.createElement('button');
+      dlBtn.type = 'button';
+      dlBtn.className = 'btn btn-primary btn-sm';
+      dlBtn.textContent = '⬇ 下载附件';
+      dlBtn.addEventListener('click', function(){ doDownload(s.id, user); });
+      actions.appendChild(dlBtn);
+    }
+    var downloaded = hasDownloaded(user.id, s.id);
+    if(downloaded){
+      var tag = document.createElement('span');
+      tag.className = 'role-tag tag-DEPT_HEAD';
+      tag.textContent = '已下载';
+      actions.appendChild(tag);
+    }
+
+    // 评分区
+    renderRatingArea(s, user);
+
+    // 评分列表
+    renderRatingList(s);
+  }
+
+  function hasDownloaded(userId, sid){
+    var db = loadDB();
+    for(var i=0;i<db.downloads.length;i++){
+      if(db.downloads[i].userId === userId && db.downloads[i].submissionId === sid) return true;
+    }
+    return false;
+  }
+
+  function doDownload(sid, user){
+    var db = loadDB();
+    // downloadCount +1
+    for(var i=0;i<db.submissions.length;i++){
+      if(db.submissions[i].id === sid){
+        db.submissions[i].downloadCount = (db.submissions[i].downloadCount||0) + 1;
+        db.submissions[i].updatedAt = nowStr();
+        break;
+      }
+    }
+    // 标记下载记录
+    var exists = false;
+    for(var j=0;j<db.downloads.length;j++){
+      if(db.downloads[j].userId === user.id && db.downloads[j].submissionId === sid){ exists = true; break; }
+    }
+    if(!exists){
+      db.downloads.push({ userId:user.id, submissionId:sid, at:nowStr() });
+    }
+    saveDB(db);
+    setAlert('detailAlert','下载成功（mock），下载次数 +1，现已可评分','success');
+    renderDetail();
+  }
+
+  /* ----- 评分区 ----- */
+  function renderRatingArea(s, user){
+    var box = document.getElementById('ratingArea');
+    box.innerHTML = '';
+
+    // 权限校验：是否有「作品打分」权限
+    if(!hasPermission(user, 'rate')){
+      box.innerHTML = '<div class="alert alert-warning">您当前角色无「作品打分」权限。</div>';
+      return;
+    }
+
+    // 必须已下载
+    if(!hasDownloaded(user.id, s.id)){
+      box.innerHTML = '<div class="alert alert-warning">请先下载作品后再评分（点击上方「下载作品」按钮）。</div>';
+      return;
+    }
+
+    // 查找已评分记录
+    var db = loadDB();
+    var myRating = null;
+    for(var i=0;i<db.ratings.length;i++){
+      if(db.ratings[i].submissionId === s.id && db.ratings[i].userId === user.id){
+        myRating = db.ratings[i]; break;
+      }
+    }
+
+    if(myRating && !box.dataset.editing){
+      // 已评过：显示原评分
+      var avg = (myRating.easeOfUse + myRating.businessValue + myRating.techQuality + myRating.innovation)/4;
+      var html =
+        '<div class="alert alert-success">您已对此作品评分，平均分 '+avg.toFixed(2)+'</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--text-sub);margin-bottom:10px;">' +
+          '<span>易用性 <b style="color:var(--warning)">'+myRating.easeOfUse+'</b></span>' +
+          '<span>业务价值 <b style="color:var(--warning)">'+myRating.businessValue+'</b></span>' +
+          '<span>技术质量 <b style="color:var(--warning)">'+myRating.techQuality+'</b></span>' +
+          '<span>创新性 <b style="color:var(--warning)">'+myRating.innovation+'</b></span>' +
+        '</div>' +
+        '<div style="font-size:13px;color:var(--text-sub);background:#f8fafc;padding:10px;border-radius:6px;margin-bottom:10px;">'+escapeHtml(myRating.commentText||'(无评论)')+'</div>' +
+        '<button type="button" class="btn btn-sm" id="btnEditRating">修改评分</button>';
+      box.innerHTML = html;
+      document.getElementById('btnEditRating').addEventListener('click', function(){
+        box.dataset.editing = '1';
+        renderRatingArea(s, user);
+      });
+      return;
+    }
+
+    // 未评分或正在编辑：显示打分表单
+    var form = document.createElement('div');
+    var dims = [
+      { key:'easeOfUse',     label:'易用性' },
+      { key:'businessValue', label:'业务价值' },
+      { key:'techQuality',   label:'技术质量' },
+      { key:'innovation',    label:'创新性' }
+    ];
+    var current = { easeOfUse:0, businessValue:0, techQuality:0, innovation:0 };
+    if(myRating){
+      current.easeOfUse = myRating.easeOfUse;
+      current.businessValue = myRating.businessValue;
+      current.techQuality = myRating.techQuality;
+      current.innovation = myRating.innovation;
+    }
+    dims.forEach(function(d){
+      var row = document.createElement('div');
+      row.className = 'star-row';
+      row.innerHTML = '<span class="star-label">'+d.label+'</span>';
+      var stars = document.createElement('span');
+      stars.className = 'stars';
+      stars.setAttribute('data-dim', d.key);
+      for(var v=1; v<=5; v++){
+        var star = document.createElement('span');
+        star.className = 'star' + (v <= current[d.key] ? ' filled' : '');
+        star.setAttribute('data-v', String(v));
+        star.textContent = '★';
+        // 使用 e.currentTarget 避免闭包捕获循环变量导致所有星读到同一个值
+        star.addEventListener('click', function(e){
+          var src = e.currentTarget || e.target;
+          var val = parseInt(src.getAttribute('data-v'),10);
+          current[d.key] = val;
+          // 刷新该行 stars
+          stars.querySelectorAll('.star').forEach(function(st){
+            var sv = parseInt(st.getAttribute('data-v'),10);
+            st.classList.toggle('filled', sv <= val);
+          });
+        });
+        stars.appendChild(star);
+      }
+      row.appendChild(stars);
+      form.appendChild(row);
+    });
+
+    var commentField = document.createElement('div');
+    commentField.className = 'field';
+    commentField.style.marginTop = '8px';
+    commentField.innerHTML = '<label>评语</label>';
+    var ta = document.createElement('textarea');
+    ta.id = 'rateComment';
+    ta.placeholder = '可填写使用感受或建议';
+    ta.value = myRating ? (myRating.commentText||'') : '';
+    commentField.appendChild(ta);
+    form.appendChild(commentField);
+
+    var alertBox = document.createElement('div');
+    alertBox.id = 'rateAlert';
+    form.appendChild(alertBox);
+
+    var btnRow = document.createElement('div');
+    btnRow.style.marginTop = '10px';
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'btn btn-primary btn-sm';
+    submitBtn.textContent = myRating ? '保存修改' : '提交评分';
+    submitBtn.addEventListener('click', function(){
+      if(!current.easeOfUse || !current.businessValue || !current.techQuality || !current.innovation){
+        alertBox.innerHTML = '<div class="alert alert-error">请为 4 个维度各选择 1-5 星</div>';
+        return;
+      }
+      submitRating(s.id, user, current, ta.value.trim(), myRating);
+    });
+    btnRow.appendChild(submitBtn);
+
+    if(myRating){
+      var cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'btn btn-sm';
+      cancelBtn.style.marginLeft = '8px';
+      cancelBtn.textContent = '取消编辑';
+      cancelBtn.addEventListener('click', function(){
+        delete box.dataset.editing;
+        renderRatingArea(s, user);
+      });
+      btnRow.appendChild(cancelBtn);
+    }
+    form.appendChild(btnRow);
+    box.appendChild(form);
+  }
+
+  function submitRating(sid, user, dims, comment, existing){
+    var db = loadDB();
+    var ratedByRole = hasRole(user, 'JUDGE') ? 'JUDGE' : 'USER';
+    if(existing){
+      // 更新
+      for(var i=0;i<db.ratings.length;i++){
+        if(db.ratings[i].id === existing.id){
+          db.ratings[i].easeOfUse = dims.easeOfUse;
+          db.ratings[i].businessValue = dims.businessValue;
+          db.ratings[i].techQuality = dims.techQuality;
+          db.ratings[i].innovation = dims.innovation;
+          db.ratings[i].commentText = comment;
+          db.ratings[i].ratedByRole = ratedByRole;
+          db.ratings[i].ratedAt = nowStr();
+          break;
+        }
+      }
+    }else{
+      // 新增
+      var nr = {
+        id: nextId(db.ratings, 201),
+        submissionId: sid,
+        userId: user.id,
+        userName: user.username,
+        ratedByRole: ratedByRole,
+        easeOfUse: dims.easeOfUse,
+        businessValue: dims.businessValue,
+        techQuality: dims.techQuality,
+        innovation: dims.innovation,
+        commentText: comment,
+        ratedAt: nowStr()
+      };
+      db.ratings.push(nr);
+    }
+    // 重算作品 ratingAvg / ratingCount
+    recomputeSubmissionRating(db, sid);
+    saveDB(db);
+
+    // 清除编辑标记
+    delete document.getElementById('ratingArea').dataset.editing;
+    setAlert('detailAlert', existing ? '评分已更新' : '评分已提交，感谢您的反馈', 'success');
+    renderDetail();
+  }
+
+  function recomputeSubmissionRating(db, sid){
+    var rs = db.ratings.filter(function(r){ return r.submissionId === sid; });
+    var sum = 0;
+    rs.forEach(function(r){
+      sum += (r.easeOfUse + r.businessValue + r.techQuality + r.innovation)/4;
+    });
+    var avg = rs.length > 0 ? sum/rs.length : 0;
+    for(var i=0;i<db.submissions.length;i++){
+      if(db.submissions[i].id === sid){
+        db.submissions[i].ratingAvg = Math.round(avg*100)/100;
+        db.submissions[i].ratingCount = rs.length;
+        db.submissions[i].updatedAt = nowStr();
+        break;
+      }
+    }
+  }
+
+  function renderRatingList(s){
+    var db = loadDB();
+    var rs = db.ratings.filter(function(r){ return r.submissionId === s.id; });
+    rs.sort(function(a,b){ return (b.ratedAt||'').localeCompare(a.ratedAt||''); });
+    var box = document.getElementById('ratingList');
+    if(rs.length === 0){
+      box.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:16px;text-align:center;">暂无评分</div>';
+      return;
+    }
+    box.innerHTML = '';
+    rs.forEach(function(r){
+      var avg = (r.easeOfUse + r.businessValue + r.techQuality + r.innovation)/4;
+      var item = document.createElement('div');
+      item.className = 'rating-item';
+      item.innerHTML =
+        '<div class="rating-item-head">' +
+          '<div>' +
+            '<span class="rater">'+escapeHtml(r.userName||'匿名')+'</span> ' +
+            '<span class="role-tag tag-'+(r.ratedByRole||'USER')+'">'+escapeHtml(r.ratedByRole||'USER')+'</span>' +
+          '</div>' +
+          '<span class="time">'+escapeHtml(r.ratedAt||'—')+'</span>' +
+        '</div>' +
+        '<div class="dims">' +
+          '<span>易用性 <b>'+r.easeOfUse+'</b></span>' +
+          '<span>业务价值 <b>'+r.businessValue+'</b></span>' +
+          '<span>技术质量 <b>'+r.techQuality+'</b></span>' +
+          '<span>创新性 <b>'+r.innovation+'</b></span>' +
+          '<span>平均 <b>'+avg.toFixed(2)+'</b></span>' +
+        '</div>' +
+        (r.commentText ? '<div class="comment">'+escapeHtml(r.commentText)+'</div>' : '');
+      box.appendChild(item);
+    });
+  }
+
+  /* ===================================================================
+   * 十二、退出登录
+   * =================================================================== */
+
+  function doLogout(){
+    if(!confirm('确定退出登录？')) return;
+    var db = loadDB();
+    db.session.userId = null;
+    saveDB(db);
+    loginAccountEl.value = '';
+    loginPasswordEl.value = '';
+    setAlert('loginAlert','');
+    currentTab = 'dashboard';
+    showView('view-login');
+    loginAccountEl.focus();
+  }
+
+  document.getElementById('btnLogout').addEventListener('click', doLogout);
+
+  /* ===================================================================
+   * 十三、初始化
+   * =================================================================== */
+
+  // 确保 storage 已 seed
+  loadDB();
+  // 启动登录页
+  showView('view-login');
+  loginAccountEl.focus();
+
+})();
+</script>
+</body>
+</html>

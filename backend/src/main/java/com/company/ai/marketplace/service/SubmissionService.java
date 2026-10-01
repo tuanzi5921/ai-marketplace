@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.common.BizException;
+import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.dto.SubmissionCreateDTO;
 import com.company.ai.marketplace.entity.*;
 import com.company.ai.marketplace.integration.storage.StorageService;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 作品管线：提交 / 查询 / 下载 / 版本迭代。
+ * 作品管线：提交 / 查询 / 下载 / 版本迭代 / 管理。
  */
 @Slf4j
 @Service
@@ -36,22 +37,18 @@ public class SubmissionService {
 
     /**
      * 提交作品（上传文件 + 建主记录）。
-     * SAAS 类型不要求文件，但要求 saasUrl。
      */
     @Transactional
     public Long submit(SubmissionCreateDTO dto, MultipartFile file) {
         LoginUser current = ThreadLocalContext.get();
 
-        // SAAS 类型校验
         if ("SAAS".equals(dto.getType()) && StrUtil.isBlank(dto.getSaasUrl())) {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "SAAS 类型作品必须填写访问 URL");
         }
-        // 非 SAAS 类型必须上传文件
         if (!"SAAS".equals(dto.getType()) && (file == null || file.isEmpty())) {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "非 SAAS 类型作品必须上传文件");
         }
 
-        // 1. 建作品主记录
         MpSubmission sub = new MpSubmission();
         sub.setTitle(dto.getTitle());
         sub.setAuthorId(current.getId());
@@ -66,10 +63,9 @@ public class SubmissionService {
         sub.setVersion(StrUtil.isBlank(dto.getVersion()) ? "1.0.0" : dto.getVersion());
         sub.setDownloadCount(0);
         sub.setRatingCount(0);
-        sub.setStatus("PENDING"); // 提交即入待审队列
+        sub.setStatus("PENDING");
         submissionMapper.insert(sub);
 
-        // 2. 存储附件（非 SAAS 类型）
         if (file != null && !file.isEmpty()) {
             StorageService.StoredFile sf = storageService.store(file);
             MpSubmissionArtifact artifact = new MpSubmissionArtifact();
@@ -87,7 +83,6 @@ public class SubmissionService {
             submissionMapper.updateById(sub);
         }
 
-        // 3. SAAS 类型存访问链接
         if ("SAAS".equals(dto.getType())) {
             MpSaasLink link = new MpSaasLink();
             link.setSubmissionId(sub.getId());
@@ -97,10 +92,8 @@ public class SubmissionService {
             saasLinkMapper.insert(link);
         }
 
-        // 4. 积分：提交作品 +5
         pointService.award(current.getId(), 5, "SUBMIT", sub.getId());
 
-        // 5. 审计
         auditService.log("SUBMISSION", "SUBMIT", "SUBMISSION", sub.getId(),
                 "title=" + dto.getTitle() + " type=" + dto.getType());
 
@@ -111,23 +104,34 @@ public class SubmissionService {
     /**
      * 分页查询已发布作品列表（公开浏览）。
      */
-    public Page<MpSubmission> listPublished(int page, int size, String type, String domain) {
+    public PageResult<MpSubmission> listPublished(int page, int size, String type, String domain) {
         LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
         w.eq(MpSubmission::getStatus, "PUBLISHED");
         if (StrUtil.isNotBlank(type)) w.eq(MpSubmission::getType, type);
         if (StrUtil.isNotBlank(domain)) w.eq(MpSubmission::getBusinessDomain, domain);
         w.orderByDesc(MpSubmission::getDownloadCount);
-        return submissionMapper.selectPage(new Page<>(page, size), w);
+        return PageResult.from(submissionMapper.selectPage(new Page<>(page, size), w));
     }
 
     /**
-     * 查询当前登录用户的作品（不限状态，按 id 倒序，等价于提交时间倒序）。
+     * 查询当前登录用户的作品（不限状态）。
      */
-    public Page<MpSubmission> listMine(Long userId, int page, int size) {
+    public PageResult<MpSubmission> listMine(Long userId, int page, int size) {
         LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
         w.eq(MpSubmission::getAuthorId, userId)
                 .orderByDesc(MpSubmission::getId);
-        return submissionMapper.selectPage(new Page<>(page, size), w);
+        return PageResult.from(submissionMapper.selectPage(new Page<>(page, size), w));
+    }
+
+    /**
+     * 管理端：全量作品列表（含所有状态，支持状态/类型筛选）。
+     */
+    public PageResult<MpSubmission> adminList(int page, int size, String status, String type) {
+        LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
+        if (StrUtil.isNotBlank(status)) w.eq(MpSubmission::getStatus, status);
+        if (StrUtil.isNotBlank(type)) w.eq(MpSubmission::getType, type);
+        w.orderByDesc(MpSubmission::getCreatedAt);
+        return PageResult.from(submissionMapper.selectPage(new Page<>(page, size), w));
     }
 
     /**
@@ -141,7 +145,6 @@ public class SubmissionService {
 
     /**
      * 下载作品：记录下载日志 + download_count+1。
-     * 返回最新版本附件（用于流式输出）。
      */
     @Transactional
     public MpSubmissionArtifact download(Long submissionId) {
@@ -151,20 +154,17 @@ public class SubmissionService {
             throw new BizException(ErrorCode.SUBMISSION_NOT_PUBLISHED);
         }
 
-        // 取最新版本附件
         MpSubmissionArtifact artifact = artifactMapper.selectById(sub.getLatestArtifactId());
         if (artifact == null) {
             throw new BizException(ErrorCode.RESOURCE_NOT_FOUND.getCode(), "作品附件不存在");
         }
 
-        // 记录下载日志
         MpDownloadLog log = new MpDownloadLog();
         log.setSubmissionId(submissionId);
         log.setArtifactId(artifact.getId());
         log.setUserId(current.getId());
         downloadLogMapper.insert(log);
 
-        // download_count + 1
         submissionMapper.update(null, new LambdaUpdateWrapper<MpSubmission>()
                 .eq(MpSubmission::getId, submissionId)
                 .setSql("download_count = download_count + 1"));
@@ -172,6 +172,36 @@ public class SubmissionService {
         auditService.log("SUBMISSION", "DOWNLOAD", "SUBMISSION", submissionId,
                 "user=" + current.getId());
         return artifact;
+    }
+
+    /**
+     * 管理端：下架作品（PUBLISHED → UNLISTED）。
+     */
+    @Transactional
+    public void offline(Long id) {
+        MpSubmission sub = submissionMapper.selectById(id);
+        if (sub == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
+        if (!"PUBLISHED".equals(sub.getStatus())) {
+            throw new BizException(ErrorCode.STATUS_MISMATCH.getCode(),
+                    "仅 PUBLISHED 状态可下架，当前: " + sub.getStatus());
+        }
+        submissionMapper.update(null, new LambdaUpdateWrapper<MpSubmission>()
+                .eq(MpSubmission::getId, id)
+                .set(MpSubmission::getStatus, "UNLISTED"));
+        auditService.log("SUBMISSION", "OFFLINE", "SUBMISSION", id, "operator");
+        log.info("作品下架: id={}", id);
+    }
+
+    /**
+     * 管理端：删除作品（软删除）。
+     */
+    @Transactional
+    public void delete(Long id) {
+        MpSubmission sub = submissionMapper.selectById(id);
+        if (sub == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
+        submissionMapper.deleteById(id);
+        auditService.log("SUBMISSION", "DELETE", "SUBMISSION", id, "operator");
+        log.info("作品删除: id={}", id);
     }
 
     /**

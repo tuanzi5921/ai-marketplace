@@ -3,7 +3,9 @@ package com.company.ai.marketplace.controller;
 import com.company.ai.marketplace.common.Result;
 import com.company.ai.marketplace.dto.CommentCreateDTO;
 import com.company.ai.marketplace.dto.CommentReportDTO;
+import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.entity.MpComment;
+import com.company.ai.marketplace.entity.MpCommentReport;
 import com.company.ai.marketplace.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +14,7 @@ import java.util.List;
 
 /**
  * 评论接口（先发后审 + 举报制）。
+ * <p>管理端额外提供：举报列表查询。
  */
 @RestController
 @RequestMapping("/comments")
@@ -30,6 +33,14 @@ public class CommentController {
     @GetMapping("/submissions/{submissionId}")
     public Result<List<MpComment>> listBySubmission(@PathVariable Long submissionId) {
         return Result.ok(commentService.listBySubmission(submissionId));
+    }
+
+    /** 管理端：被举报评论列表 */
+    @GetMapping("/reported")
+    public Result<PageResult<MpCommentReport>> listReported(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return Result.ok(commentService.listReported(page, size));
     }
 
     /** 举报评论 */

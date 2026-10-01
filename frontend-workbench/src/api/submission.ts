@@ -11,9 +11,9 @@ export interface SubmissionQuery {
   domain?: string
 }
 
-// 分页结果
+// 分页结果（与后端 PageResult 一致）
 export interface PageResult<T> {
-  records: T[]
+  list: T[]
   total: number
   page: number
   size: number
@@ -110,7 +110,7 @@ export function submit(form: SubmissionForm) {
 
 // 下载作品
 export function download(id: string | number) {
-  return request.get<Blob>(`/submissions/${id}/download`, {
+  return request.post<Blob>(`/submissions/${id}/download`, undefined, {
     responseType: 'blob'
   })
 }

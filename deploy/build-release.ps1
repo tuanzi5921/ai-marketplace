@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   企业 AI 应用市场 — 一键构建发布包（Windows 开发机执行）
 
@@ -19,18 +19,6 @@
 
 $ErrorActionPreference = 'Stop'
 
-# Windows PowerShell 5.1 在 Stop 偏好下会把原生命令写到 stderr 的正常输出
-# 当成终止性错误（NativeCommandError），而 java/mvn/npm/tar 都会写 stderr，
-# 所以原生命令统一走这个包装：临时放宽偏好，只按退出码判定成败。
-function Invoke-Tool {
-    param([Parameter(Mandatory)][string]$Name, [string[]]$ToolArgs = @())
-    $prev = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try { & $Name @ToolArgs 2>&1 | ForEach-Object { Write-Host $_ } }
-    finally { $ErrorActionPreference = $prev }
-    return $LASTEXITCODE
-}
-
 $RepoRoot  = 'D:\WorkbuddyWorkspace\ai-marketplace'
 $JavaHome  = 'C:\Program Files\Java\jdk-17'
 $MavenHome = 'D:\WorkbuddyWorkspace\tools\apache-maven-3.9.16'
@@ -42,16 +30,16 @@ $env:JAVA_HOME = $JavaHome
 $env:PATH      = "$JavaHome\bin;$MavenHome\bin;$env:PATH"
 
 Write-Host "`n==> 校验工具链" -ForegroundColor Cyan
-$null = Invoke-Tool java @('-version')
-$null = Invoke-Tool mvn  @('-v')
-$null = Invoke-Tool node @('-v')
+java -version 2>&1 | Select-Object -First 1
+& mvn -v | Select-Object -First 1
+node -v
 
 New-Item -ItemType Directory -Force -Path $Staging | Out-Null
 
 Write-Host "`n==> 构建后端 jar" -ForegroundColor Cyan
 Push-Location (Join-Path $RepoRoot 'backend')
-$code = Invoke-Tool mvn @('-B', 'clean', 'package', '-DskipTests')
-if ($code -ne 0) { Pop-Location; throw "Maven 构建失败（退出码 $code）" }
+& mvn -B clean package -DskipTests
+if ($LASTEXITCODE -ne 0) { Pop-Location; throw "Maven 构建失败（退出码 $LASTEXITCODE）" }
 Pop-Location
 New-Item -ItemType Directory -Force -Path "$Staging\backend" | Out-Null
 Copy-Item "$RepoRoot\backend\target\ai-marketplace.jar" "$Staging\backend\"
@@ -59,9 +47,9 @@ Copy-Item "$RepoRoot\backend\target\ai-marketplace.jar" "$Staging\backend\"
 foreach ($app in 'frontend-workbench', 'frontend-admin') {
     Write-Host "`n==> 构建前端 $app" -ForegroundColor Cyan
     Push-Location (Join-Path $RepoRoot $app)
-    if (-not (Test-Path 'node_modules')) { $null = Invoke-Tool npm @('install', '--no-audit', '--no-fund') }
-    $code = Invoke-Tool npx @('vite', 'build')
-    if ($code -ne 0) { Pop-Location; throw "$app 构建失败（退出码 $code）" }
+    if (-not (Test-Path 'node_modules')) { & npm install --no-audit --no-fund }
+    & npx vite build
+    if ($LASTEXITCODE -ne 0) { Pop-Location; throw "$app 构建失败" }
     Pop-Location
     New-Item -ItemType Directory -Force -Path "$Staging\$app" | Out-Null
     Copy-Item -Recurse "$RepoRoot\$app\dist" "$Staging\$app\dist"
@@ -73,17 +61,10 @@ New-Item -ItemType Directory -Force -Path "$Staging\deploy\sql" | Out-Null
 Copy-Item "$RepoRoot\backend\src\main\resources\sql\schema.sql" "$Staging\deploy\sql\"
 
 Write-Host "`n==> 打包 tar.gz" -ForegroundColor Cyan
-$Leaf    = "ai-marketplace-release-$Stamp.tar.gz"
-$Archive = "$RepoRoot\dist-release\$Leaf"
+$Archive = "$RepoRoot\dist-release\ai-marketplace-release-$Stamp.tar.gz"
 Push-Location $Staging
-# PowerShell 不会为原生命令展开通配符，必须自己列出暂存目录的一级条目。
-# 另外 PATH 里 Git Bash 的 GNU tar 会把 D:\xxx 解析成 host:path 远程语法而报
-# "Cannot connect to D:"，所以用相对文件名写出，再挪回 dist-release。
-$entries = Get-ChildItem -Path $Staging -Name
-$code = Invoke-Tool tar (@('-czf', $Leaf) + $entries)
+& tar -czf $Archive *
 Pop-Location
-if ($code -ne 0) { throw "打包失败（退出码 $code）" }
-Move-Item -Force "$Staging\$Leaf" $Archive
 
 Write-Host "`n发布包已生成：$Archive" -ForegroundColor Green
 Write-Host ("体积：{0:N1} MB" -f ((Get-Item $Archive).Length / 1MB))
