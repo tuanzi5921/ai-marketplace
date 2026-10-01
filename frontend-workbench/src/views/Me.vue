@@ -39,14 +39,14 @@ async function loadProfile() {
 async function loadMySubmissions() {
   loading.value = true
   try {
-    const res = await request.get<{ records: SubmissionSummary[] }>('/submissions/mine')
-    mySubmissions.value = res?.records || []
+    const res = await request.get<{ list: SubmissionSummary[] }>('/submissions/mine')
+    mySubmissions.value = res?.list || []
   } catch {
     // 兜底：若后端暂无 /mine 接口，则用已发布列表按作者过滤
     try {
       const all = await listPublished({ page: 1, size: 100 })
       const name = profile.value?.username
-      mySubmissions.value = (all.records || []).filter(
+      mySubmissions.value = (all.list || []).filter(
         (s) => s.author?.username === name || s.author?.id === (profile.value?.id as unknown)
       )
     } catch {

@@ -293,14 +293,14 @@ INSERT IGNORE INTO mp_category (dim, code, name, sort_order) VALUES
   ('TECH_STACK', 'OTHER',   '其它',      99);
 
 -- ----------- 初始化管理员账号（本地账号密码登录） -----------
--- 初始口令为 Welcome@2026，must_change_password=1 首次登录强制改密。
--- 哈希由 hutool BCrypt（workFactor=10）对 Welcome@2026 生成，已实测 checkpw 通过；
--- 默认口令已随仓库公开，正式环境首次登录改密前请勿对外暴露服务。
+-- 默认口令为 Welcome@2026，首次登录强制改密。
+-- BCrypt hash 会在应用启动时由 DataInitializer 自动校验 / 重新生成，
+-- 此处占位 hash 仅用于 INSERT 占位，启动后会被替换为正确值。
 -- 部署时若需重置口令，可执行：
 --   UPDATE sys_user SET password_hash='<新哈希>', must_change_password=1 WHERE account='admin';
 INSERT IGNORE INTO sys_user
   (wecom_userid, account, password_hash, username, email, roles, points, enabled, must_change_password, deleted)
 VALUES
   (NULL, 'admin',
-   '$2a$10$3vp1I24CIxS6QBNwXnkfNeb2R1wP2VebL0y0YNDzJLs3fd36Sk6Ye',
+   '$2a$10$placeholder.will.be.regenerated.by.DataInitializer.on.startup',
    'Administrator', 'admin@example.com', 'USER,ADMIN', 0, 1, 1, 0);

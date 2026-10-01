@@ -3,11 +3,14 @@ package com.company.ai.marketplace.service;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.ai.marketplace.common.BizException;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.config.AppProperties;
 import com.company.ai.marketplace.dto.CreateUserDTO;
 import com.company.ai.marketplace.dto.LoginResultVO;
+import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.dto.UserVO;
 import com.company.ai.marketplace.entity.SysUser;
 import com.company.ai.marketplace.mapper.SysUserMapper;
@@ -24,7 +27,7 @@ import java.util.Set;
 
 /**
  * 认证服务。
- * <p>正式登录入口为账号密码（{@link #loginByPassword}），企微 SSO 已移除。
+ * <p>正式登录入口为账号密码，企微 SSO 已移除。
  * 管理员可通过 {@link #createUser} 创建用户账号，初始密码为
  * {@code app.auth.default-password}，首次登录强制改密。
  */
@@ -36,6 +39,7 @@ public class AuthService {
     private final SysUserMapper userMapper;
     private final JwtService jwtService;
     private final AppProperties props;
+    private final AuditService auditService;
 
     /**
      * 账号密码登录（正式入口）。
@@ -43,7 +47,6 @@ public class AuthService {
     public LoginResultVO loginByPassword(String account, String password) {
         SysUser user = userMapper.selectOne(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getAccount, account));
-        // 账号不存在与口令错误返回同一个错误码，避免被用来枚举有效账号
         if (user == null || StrUtil.isBlank(user.getPasswordHash())
                 || !BCrypt.checkpw(password, user.getPasswordHash())) {
             log.warn("账号密码登录失败: account={}", account);
@@ -78,18 +81,10 @@ public class AuthService {
      * 管理员创建用户：邮箱作为账号 + 固定默认口令 + 角色分配，首次登录强制改密。
      */
     public UserVO createUser(CreateUserDTO dto) {
-        // AuthInterceptor 只做登录态解析，角色控制必须在业务层兜底：
-        // 否则任何普通 USER 登录后都能调此接口创建 ADMIN 账号，形成越权提权
-        LoginUser operator = ThreadLocalContext.get();
-        if (operator == null || operator.getRoles() == null
-                || !operator.getRoles().contains("ADMIN")) {
-            throw new BizException(ErrorCode.NO_PERMISSION.getCode(), "仅超管可创建用户");
-        }
         String email = dto.getEmail();
         if (StrUtil.isBlank(email) || !email.contains("@")) {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "邮箱格式不合法");
         }
-        // account 默认取邮箱 @ 之前的部分；显式传入则优先使用
         String account = StrUtil.isNotBlank(dto.getAccount()) ? dto.getAccount() : email.substring(0, email.indexOf('@'));
         Long count = userMapper.selectCount(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getAccount, account));
@@ -97,7 +92,7 @@ public class AuthService {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "账号已存在: " + account);
         }
         SysUser user = new SysUser();
-        user.setWecomUserid(account); // 兼容历史 NOT NULL 字段，占位填账号本身
+        user.setWecomUserid(account);
         user.setAccount(account);
         user.setPasswordHash(BCrypt.hashpw(props.getAuth().getDefaultPassword()));
         user.setUsername(account);
@@ -109,12 +104,64 @@ public class AuthService {
         userMapper.insert(user);
         log.info("管理员创建用户: id={} account={} email={} roles={}",
                 user.getId(), account, email, user.getRoles());
+        auditService.log("PERMISSION", "CREATE_USER", "USER", user.getId(),
+                "account=" + account + " roles=" + user.getRoles());
         return toUserVO(user);
     }
 
     /**
-     * 当前登录用户。由 AuthInterceptor 解析 JWT 后写入 ThreadLocalContext，
-     * 此处回查数据库以补齐 points / avatar / enabled 等 JWT 里不携带的字段。
+     * 用户列表（管理端）。
+     */
+    public PageResult<UserVO> listUsers(int page, int size) {
+        Page<SysUser> p = userMapper.selectPage(new Page<>(page, size),
+                new LambdaQueryWrapper<SysUser>()
+                        .orderByDesc(SysUser::getCreatedAt));
+        return PageResult.from(p, this::toUserVO);
+    }
+
+    /**
+     * 授予角色：在用户 roles 字段追加新角色（去重）。
+     */
+    public void grantRole(Long userId, String role) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
+        Set<String> roles = parseRoles(user.getRoles());
+        roles.add(role);
+        user.setRoles(String.join(",", roles));
+        userMapper.updateById(user);
+        auditService.log("PERMISSION", "GRANT_ROLE", "USER", userId, "role=" + role);
+        log.info("角色授予: user={} role={}", userId, role);
+    }
+
+    /**
+     * 撤销角色：从用户 roles 字段移除指定角色。
+     */
+    public void revokeRole(Long userId, String role) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
+        Set<String> roles = parseRoles(user.getRoles());
+        roles.remove(role);
+        if (roles.isEmpty()) roles.add("USER");
+        user.setRoles(String.join(",", roles));
+        userMapper.updateById(user);
+        auditService.log("PERMISSION", "REVOKE_ROLE", "USER", userId, "role=" + role);
+        log.info("角色撤销: user={} role={}", userId, role);
+    }
+
+    /**
+     * 启用 / 停用用户。
+     */
+    public void setEnabled(Long userId, boolean enabled) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
+        user.setEnabled(enabled ? 1 : 0);
+        userMapper.updateById(user);
+        auditService.log("PERMISSION", enabled ? "ENABLE" : "DISABLE", "USER", userId, null);
+        log.info("用户{}: id={}", enabled ? "启用" : "停用", userId);
+    }
+
+    /**
+     * 当前登录用户。
      */
     public UserVO currentUser() {
         LoginUser current = ThreadLocalContext.get();
@@ -128,7 +175,8 @@ public class AuthService {
         return toUserVO(user);
     }
 
-    /** 校验启用状态后签发 JWT，并一并返回前端需要的用户信息 */
+    // ====== 内部 ======
+
     private LoginResultVO issueToken(SysUser user) {
         if (user.getEnabled() == null || user.getEnabled() != 1) {
             throw new BizException(ErrorCode.AUTH_USER_DISABLED);
@@ -163,8 +211,6 @@ public class AuthService {
                 if (StrUtil.isNotBlank(r)) result.add(r.trim());
             }
         }
-        // 角色为空会导致 JwtService.sign 里 String.join 得到空串、解析后出现空角色，
-        // 兜底给 USER 保证任何已启用用户至少有基础权限
         if (result.isEmpty()) result.add("USER");
         return result;
     }

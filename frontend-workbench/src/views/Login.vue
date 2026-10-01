@@ -1,27 +1,46 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ChatDotRound } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import { localLogin, me, type LoginResult } from '@/api/auth'
+import {
+  loginByCode,
+  localLogin,
+  redirectToWecomAuth,
+  me,
+  type LoginResult
+} from '@/api/auth'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const redirecting = ref(false)
 const submitting = ref(false)
 const form = reactive({ account: '', password: '' })
 
 /** 登录成功后统一写入登录态并跳回来源页 */
 async function applyLoginResult(res: LoginResult) {
   auth.setToken(res.token)
-  // 后端登录路径会返回 user；缺失时兜底再拉一次 /auth/me
+  // 后端两条登录路径都会返回 user；缺失时兜底再拉一次 /auth/me
   auth.setUser(res.user ?? (await me()))
   ElMessage.success('登录成功')
   router.replace((route.query.redirect as string) || '/')
 }
 
-// 账号口令登录
+// 点击「企微 SSO 登录」→ 取授权地址并跳转
+async function handleWecomLogin() {
+  redirecting.value = true
+  try {
+    await redirectToWecomAuth()
+  } catch {
+    // request 拦截器已提示错误（企微未配置时为业务码 1007）
+    redirecting.value = false
+  }
+}
+
+// 账号口令登录（企微可信域名验证通过前的兜底入口）
 async function handleLocalLogin() {
   if (!form.account.trim() || !form.password) {
     ElMessage.warning('请输入账号与口令')
@@ -36,6 +55,18 @@ async function handleLocalLogin() {
     submitting.value = false
   }
 }
+
+// 企微 SSO 回调携带 code 参数，自动完成登录
+onMounted(async () => {
+  const code = route.query.code as string | undefined
+  if (!code) return
+  try {
+    await applyLoginResult(await loginByCode(code))
+  } catch {
+    // 失败留在登录页，并清掉 URL 上已失效的 code
+    router.replace({ name: 'Login' })
+  }
+})
 </script>
 
 <template>
@@ -54,6 +85,20 @@ async function handleLocalLogin() {
       </div>
 
       <div class="login-card__body">
+        <el-button
+          type="primary"
+          size="large"
+          round
+          class="sso-btn"
+          :loading="redirecting"
+          @click="handleWecomLogin"
+        >
+          <el-icon v-if="!redirecting" class="sso-icon"><ChatDotRound /></el-icon>
+          企微 SSO 登录
+        </el-button>
+
+        <div class="divider"><span>或使用账号口令</span></div>
+
         <el-form class="local-form" label-position="top" @submit.prevent="handleLocalLogin">
           <el-form-item label="账号">
             <el-input
@@ -86,7 +131,7 @@ async function handleLocalLogin() {
           </el-button>
         </el-form>
 
-        <p class="tip">使用管理员分配的账号登录，开启你的 AI 创作之旅</p>
+        <p class="tip">使用企业微信账号一键登录，开启你的 AI 创作之旅</p>
       </div>
 
       <footer class="login-card__foot">
@@ -178,6 +223,31 @@ async function handleLocalLogin() {
   margin: 0 0 36px;
   color: var(--brand-muted);
   font-size: 14px;
+}
+
+.sso-btn {
+  width: 100%;
+  font-size: 16px;
+  height: 48px;
+}
+.sso-icon {
+  margin-right: 6px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: var(--brand-muted);
+  font-size: 12px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--brand-border);
 }
 
 .local-form {

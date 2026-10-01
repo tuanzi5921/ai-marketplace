@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.common.BizException;
-import com.company.ai.marketplace.dto.ReviewActionDTO;
+import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.entity.*;
 import com.company.ai.marketplace.mapper.*;
 import com.company.ai.marketplace.security.LoginUser;
@@ -32,21 +32,43 @@ public class ReviewService {
     private final AuditService auditService;
 
     /**
-     * 人工审核操作：通过 / 驳回。
+     * 人工审核：通过。
      */
     @Transactional
-    public void review(ReviewActionDTO dto) {
+    public void approve(Long submissionId, String reason) {
+        doReview(submissionId, true, reason);
+    }
+
+    /**
+     * 人工审核：驳回。
+     */
+    @Transactional
+    public void reject(Long submissionId, String reason) {
+        doReview(submissionId, false, reason);
+    }
+
+    /**
+     * 待审队列分页（运营后台用）。
+     */
+    public PageResult<MpSubmission> pendingQueue(int page, int size) {
+        Page<MpSubmission> p = submissionMapper.selectPage(new Page<>(page, size),
+                new LambdaQueryWrapper<MpSubmission>()
+                        .eq(MpSubmission::getStatus, "PENDING")
+                        .orderByAsc(MpSubmission::getCreatedAt));
+        return PageResult.from(p);
+    }
+
+    // ====== 内部 ======
+
+    private void doReview(Long submissionId, boolean approved, String reason) {
         LoginUser current = ThreadLocalContext.get();
-        MpSubmission sub = submissionMapper.selectById(dto.getSubmissionId());
+        MpSubmission sub = submissionMapper.selectById(submissionId);
         if (sub == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
         if (!"PENDING".equals(sub.getStatus())) {
             throw new BizException(ErrorCode.STATUS_MISMATCH.getCode(),
                     "当前状态不允许审核: " + sub.getStatus());
         }
 
-        boolean approved = "APPROVED".equals(dto.getDecision());
-
-        // 1. 更新作品状态
         LambdaUpdateWrapper<MpSubmission> uw = new LambdaUpdateWrapper<>();
         uw.eq(MpSubmission::getId, sub.getId());
         if (approved) {
@@ -54,40 +76,25 @@ public class ReviewService {
             uw.set(MpSubmission::getPublishedAt, LocalDateTime.now());
         } else {
             uw.set(MpSubmission::getStatus, "REJECTED");
-            uw.set(MpSubmission::getRejectReason, dto.getRejectReason());
+            uw.set(MpSubmission::getRejectReason, reason);
         }
         uw.set(MpSubmission::getReviewedBy, current.getId());
         uw.set(MpSubmission::getReviewedAt, LocalDateTime.now());
         submissionMapper.update(null, uw);
 
-        // 2. 记录审核流水（ReviewStep: MANUAL）
         MpReviewLog reviewLog = new MpReviewLog();
         reviewLog.setSubmissionId(sub.getId());
         reviewLog.setStepName("MANUAL");
         reviewLog.setStepStatus(approved ? "PASSED" : "REJECTED");
         reviewLog.setReviewerId(current.getId());
-        reviewLog.setResultDetail(approved ? "人工审核通过" : "驳回: " + dto.getRejectReason());
+        reviewLog.setResultDetail(approved ? "人工审核通过" : "驳回: " + reason);
         reviewLogMapper.insert(reviewLog);
 
-        // 3. 通知渠道已移除（原企微个人应用消息推送）
-        // 若后续接入通知，可在此调用 NotificationService
-
-        // 4. 审计
         auditService.log("REVIEW", approved ? "APPROVE" : "REJECT",
                 "SUBMISSION", sub.getId(),
-                "reviewer=" + current.getId() + " reason=" + dto.getRejectReason());
+                "reviewer=" + current.getId() + " reason=" + reason);
 
         log.info("审核完成: submission={} decision={} reviewer={}",
-                sub.getId(), dto.getDecision(), current.getId());
-    }
-
-    /**
-     * 待审队列分页（运营后台用）。
-     */
-    public Page<MpSubmission> pendingQueue(int page, int size) {
-        return submissionMapper.selectPage(new Page<>(page, size),
-                new LambdaQueryWrapper<MpSubmission>()
-                        .eq(MpSubmission::getStatus, "PENDING")
-                        .orderByAsc(MpSubmission::getCreatedAt));
+                sub.getId(), approved ? "APPROVED" : "REJECTED", current.getId());
     }
 }

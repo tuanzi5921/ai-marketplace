@@ -3,10 +3,12 @@ package com.company.ai.marketplace.service;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.ai.marketplace.common.BizException;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.dto.CommentCreateDTO;
 import com.company.ai.marketplace.dto.CommentReportDTO;
+import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.entity.MpComment;
 import com.company.ai.marketplace.entity.MpCommentReport;
 import com.company.ai.marketplace.entity.MpSubmission;
@@ -166,6 +168,16 @@ public class CommentService {
         }
         commentMapper.deleteById(commentId);
         auditService.log("COMMENT", "DELETE", "COMMENT", commentId, "user=" + current.getId());
+    }
+
+    /**
+     * 管理端：被举报评论列表（举报记录分页，按时间倒序）。
+     */
+    public PageResult<MpCommentReport> listReported(int page, int size) {
+        Page<MpCommentReport> p = reportMapper.selectPage(new Page<>(page, size),
+                new LambdaQueryWrapper<MpCommentReport>()
+                        .orderByDesc(MpCommentReport::getCreatedAt));
+        return PageResult.from(p);
     }
 
     // ====== 内部工具 ======

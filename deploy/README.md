@@ -1,7 +1,7 @@
 # 企业 AI 应用市场 — 内网部署手册
 
-部署完成时间：2026-09-21　｜　最近更新：2026-09-30（修掉审核接口接线、分页插件、下载方法四处缺口）
-状态：基础设施、应用进程、登录（账号口令）、「待审作品」页均已验收通过；企微 SSO 待可信域名配置，运营后台 13 个接口待补（见 `docs/KNOWN-GAPS.md`）
+部署完成时间：2026-09-21　｜　最近更新：2026-09-23（启用 HTTPS、登录链路打通）
+状态：基础设施、应用进程、登录（账号口令）均已验收通过；企微 SSO 待可信域名配置，运营后台接口待补（见 `docs/KNOWN-GAPS.md`）
 
 ---
 
@@ -99,16 +99,10 @@
 `openssl s_client -verify_hostname ai-marketplace.tri-ibiotech.com` 返回 `Verification: OK`）。
 
 **运营后台用 IP 访问会有「证书名称不匹配」告警**（证书是 `*.tri-ibiotech.com`，不含 IP），
-需手动点继续。**内网 split-horizon DNS 已配好**（2026-09-30 实测确认）：
-内网 DNS 服务器 `AD1.tri-ibiotech.com`（10.20.101.11）把 `ai-marketplace.tri-ibiotech.com`
-解析到 **192.168.1.132**，因此内网用户直接走
-`https://ai-marketplace.tri-ibiotech.com:8443/`（证书匹配、无告警），
-外网企微客户端仍解析到公网 `121.46.250.190` 走 8081，两边都对，还顺带省掉 NAT 回环。
-
-> 副作用：**在 132 本机用该域名自测会连不上**（`curl` 返回 `code=000 Empty reply from server`）。
-> 因为域名解析到公网 IP，而 8443 并未做公网 DNAT，NAT 回环不通。
-> 服务器本机自测请加 `--resolve ai-marketplace.tri-ibiotech.com:8443:127.0.0.1`，
-> 或直接用 `https://127.0.0.1:8443/`（需 `-k`）。
+需手动点继续。要消除告警，推荐给内网 DNS 加一条 split-horizon 记录：
+把 `ai-marketplace.tri-ibiotech.com` 在**内网**解析到 `192.168.1.132`。
+这样内网用户走 `https://ai-marketplace.tri-ibiotech.com:8443/`（证书匹配、无告警），
+外网企微客户端仍解析到公网 IP 走 8081，两边都对，还顺带省掉 NAT 回环。
 
 公网端口映射实测现状（`121.46.250.190`）：
 
