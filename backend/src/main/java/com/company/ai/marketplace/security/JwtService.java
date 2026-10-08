@@ -66,7 +66,12 @@ public class JwtService {
         u.setUsername((String) payload.get("name"));
         u.setDepartment((String) payload.getOrDefault("dept", ""));
         String rolesStr = (String) payload.getOrDefault("roles", "USER");
-        Set<String> roles = new HashSet<>(Arrays.asList(rolesStr.split(",")));
+        Set<String> roles = new HashSet<>();
+        for (String r : rolesStr.split(",")) {
+            String trimmed = r.trim();
+            if (!trimmed.isEmpty()) roles.add(trimmed);
+        }
+        if (roles.isEmpty()) roles.add("USER");
         u.setRoles(roles);
         return u;
     }

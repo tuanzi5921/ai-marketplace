@@ -78,7 +78,7 @@ const rules: FormRules = {
 }
 
 // 文件选择
-function handleFileChange(file: { raw: File } | undefined) {
+function handleFileChange(file: any) {
   if (file?.raw) form.file = file.raw
 }
 function handleFileRemove() {

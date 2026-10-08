@@ -58,6 +58,158 @@ a:hover {
   padding: 24px 24px 48px;
 }
 
+/* 管理后台通用样式 */
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--brand-text);
+  margin: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.card-block {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+}
+
+.muted {
+  color: var(--brand-muted);
+  font-size: 13px;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--brand-text);
+  line-height: 1.1;
+}
+
+.stat-label {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--brand-muted);
+}
+
+.tone-indigo .stat-icon { background: #eef2ff; color: #4f46e5; }
+.tone-amber .stat-icon { background: #fef3c7; color: #d97706; }
+.tone-emerald .stat-icon { background: #d1fae5; color: #059669; }
+.tone-sky .stat-icon { background: #e0f2fe; color: #0284c7; }
+
+.comp-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.comp-head {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--brand-border);
+  background: #f8fafc;
+}
+
+.comp-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--brand-text);
+}
+
+.comp-body {
+  padding: 22px;
+}
+
+.comp-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--brand-text);
+  margin-bottom: 14px;
+}
+
+.comp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.comp-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  color: var(--brand-muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.comp-tracks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.comp-empty {
+  padding: 36px 22px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
 /* 卡片悬停轻动效 */
 .submission-card {
   transition: transform 0.22s ease, box-shadow 0.22s ease;

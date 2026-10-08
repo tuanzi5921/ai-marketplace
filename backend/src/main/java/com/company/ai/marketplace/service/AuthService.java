@@ -81,6 +81,8 @@ public class AuthService {
      * 管理员创建用户：邮箱作为账号 + 固定默认口令 + 角色分配，首次登录强制改密。
      */
     public UserVO createUser(CreateUserDTO dto) {
+        // 权限校验：仅 ADMIN 可创建用户
+        requireAdmin();
         String email = dto.getEmail();
         if (StrUtil.isBlank(email) || !email.contains("@")) {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "邮箱格式不合法");
@@ -92,12 +94,15 @@ public class AuthService {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "账号已存在: " + account);
         }
         SysUser user = new SysUser();
-        user.setWecomUserid(account);
+        user.setWecomUserid(null);
         user.setAccount(account);
         user.setPasswordHash(BCrypt.hashpw(props.getAuth().getDefaultPassword()));
-        user.setUsername(account);
+        user.setUsername(dto.getUsername() != null ? dto.getUsername() : account);
         user.setEmail(email);
-        user.setRoles(String.join(",", dto.getRoles()));
+        // 确保 USER 角色始终存在
+        Set<String> roles = new LinkedHashSet<>(dto.getRoles());
+        roles.add("USER");
+        user.setRoles(String.join(",", roles));
         user.setPoints(0);
         user.setEnabled(1);
         user.setMustChangePassword(1);
@@ -110,9 +115,10 @@ public class AuthService {
     }
 
     /**
-     * 用户列表（管理端）。
+     * 用户列表（管理端，仅 ADMIN）。
      */
     public PageResult<UserVO> listUsers(int page, int size) {
+        requireAdmin();
         Page<SysUser> p = userMapper.selectPage(new Page<>(page, size),
                 new LambdaQueryWrapper<SysUser>()
                         .orderByDesc(SysUser::getCreatedAt));
@@ -120,9 +126,10 @@ public class AuthService {
     }
 
     /**
-     * 授予角色：在用户 roles 字段追加新角色（去重）。
+     * 授予角色：在用户 roles 字段追加新角色（去重），仅 ADMIN。
      */
     public void grantRole(Long userId, String role) {
+        requireAdmin();
         SysUser user = userMapper.selectById(userId);
         if (user == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
         Set<String> roles = parseRoles(user.getRoles());
@@ -134,9 +141,10 @@ public class AuthService {
     }
 
     /**
-     * 撤销角色：从用户 roles 字段移除指定角色。
+     * 撤销角色：从用户 roles 字段移除指定角色，仅 ADMIN。
      */
     public void revokeRole(Long userId, String role) {
+        requireAdmin();
         SysUser user = userMapper.selectById(userId);
         if (user == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
         Set<String> roles = parseRoles(user.getRoles());
@@ -149,9 +157,10 @@ public class AuthService {
     }
 
     /**
-     * 启用 / 停用用户。
+     * 启用 / 停用用户，仅 ADMIN。
      */
     public void setEnabled(Long userId, boolean enabled) {
+        requireAdmin();
         SysUser user = userMapper.selectById(userId);
         if (user == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
         user.setEnabled(enabled ? 1 : 0);
@@ -213,5 +222,25 @@ public class AuthService {
         }
         if (result.isEmpty()) result.add("USER");
         return result;
+    }
+
+    /** 要求当前登录用户具有 ADMIN 角色 */
+    public void requireAdmin() {
+        LoginUser current = ThreadLocalContext.get();
+        if (current == null || current.getRoles() == null || !current.getRoles().contains("ADMIN")) {
+            throw new BizException(ErrorCode.AUTH_FORBIDDEN);
+        }
+    }
+
+    /** 要求当前登录用户具有指定角色中的任意一个 */
+    public void requireAnyRole(String... roles) {
+        LoginUser current = ThreadLocalContext.get();
+        if (current == null || current.getRoles() == null) {
+            throw new BizException(ErrorCode.AUTH_FORBIDDEN);
+        }
+        for (String role : roles) {
+            if (current.getRoles().contains(role)) return;
+        }
+        throw new BizException(ErrorCode.AUTH_FORBIDDEN);
     }
 }

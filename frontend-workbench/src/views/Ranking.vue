@@ -81,15 +81,17 @@ async function loadCompetition() {
   }
 }
 
-function handleTabChange(tab: string) {
-  if (tab === '__overall__') loadOverall()
-  else if (tab === '__tracks__' && !availableTracks.value.length) loadCompetition()
-  else if (tab === '__competition__') loadCompetition()
+function handleTabChange(tab: string | number) {
+  const t = String(tab)
+  if (t === '__overall__') loadOverall()
+  else if (t === '__tracks__' && !availableTracks.value.length) loadCompetition()
+  else if (t === '__competition__') loadCompetition()
 }
 
-function handleTrackSelect(track: string) {
-  currentTrack.value = track
-  loadTrack(track)
+function handleTrackSelect(track: string | number | boolean | undefined) {
+  const t = String(track)
+  currentTrack.value = t
+  loadTrack(t)
 }
 
 onMounted(() => {

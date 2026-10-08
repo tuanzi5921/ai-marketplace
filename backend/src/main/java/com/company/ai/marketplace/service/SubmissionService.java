@@ -34,6 +34,7 @@ public class SubmissionService {
     private final StorageService storageService;
     private final PointService pointService;
     private final AuditService auditService;
+    private final AuthService authService;
 
     /**
      * 提交作品（上传文件 + 建主记录）。
@@ -124,9 +125,10 @@ public class SubmissionService {
     }
 
     /**
-     * 管理端：全量作品列表（含所有状态，支持状态/类型筛选）。
+     * 管理端：全量作品列表（含所有状态，支持状态/类型筛选）。仅 OPERATOR / ADMIN。
      */
     public PageResult<MpSubmission> adminList(int page, int size, String status, String type) {
+        authService.requireAnyRole("OPERATOR", "ADMIN");
         LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(status)) w.eq(MpSubmission::getStatus, status);
         if (StrUtil.isNotBlank(type)) w.eq(MpSubmission::getType, type);
@@ -175,10 +177,11 @@ public class SubmissionService {
     }
 
     /**
-     * 管理端：下架作品（PUBLISHED → UNLISTED）。
+     * 管理端：下架作品（PUBLISHED → UNLISTED）。仅 OPERATOR / ADMIN。
      */
     @Transactional
     public void offline(Long id) {
+        authService.requireAnyRole("OPERATOR", "ADMIN");
         MpSubmission sub = submissionMapper.selectById(id);
         if (sub == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
         if (!"PUBLISHED".equals(sub.getStatus())) {
@@ -193,12 +196,17 @@ public class SubmissionService {
     }
 
     /**
-     * 管理端：删除作品（软删除）。
+     * 管理端：删除作品（软删除）。仅 OPERATOR / ADMIN，或作者本人。
      */
     @Transactional
     public void delete(Long id) {
+        LoginUser current = ThreadLocalContext.get();
         MpSubmission sub = submissionMapper.selectById(id);
         if (sub == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
+        boolean isAuthor = sub.getAuthorId().equals(current.getId());
+        if (!isAuthor) {
+            authService.requireAnyRole("OPERATOR", "ADMIN");
+        }
         submissionMapper.deleteById(id);
         auditService.log("SUBMISSION", "DELETE", "SUBMISSION", id, "operator");
         log.info("作品删除: id={}", id);

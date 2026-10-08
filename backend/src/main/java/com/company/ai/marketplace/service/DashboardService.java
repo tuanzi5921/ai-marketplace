@@ -24,11 +24,13 @@ public class DashboardService {
     private final MpDownloadLogMapper downloadLogMapper;
     private final SysUserMapper userMapper;
     private final MpCompetitionMapper competitionMapper;
+    private final AuthService authService;
 
     /**
-     * 看板统计：作品总数 / 待审数 / 下载总量 / 用户总数 / 当前大赛名。
+     * 看板统计：作品总数 / 待审数 / 下载总量 / 用户总数 / 当前大赛名。仅 OPERATOR / ADMIN。
      */
     public Map<String, Object> stats() {
+        authService.requireAnyRole("OPERATOR", "ADMIN");
         Map<String, Object> result = new HashMap<>();
 
         long totalSubmissions = submissionMapper.selectCount(null);

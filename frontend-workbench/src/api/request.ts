@@ -1,16 +1,27 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 
-// axios 实例：统一 baseURL、请求/响应拦截
+const TOKEN_KEY = 'ai_market_token'
+
+function getToken(): string {
+  let raw: string | null = null
+  try {
+    raw = localStorage.getItem(TOKEN_KEY)
+    if (!raw) return ''
+    return JSON.parse(raw) || ''
+  } catch {
+    return raw || ''
+  }
+}
+
 const service: AxiosInstance = axios.create({
   baseURL: '/api',
   timeout: 30000
 })
 
-// 请求拦截器：注入 Bearer token
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('jwt')
+    const token = getToken()
     if (token) {
       config.headers = config.headers || {}
       config.headers.Authorization = `Bearer ${token}`
@@ -20,18 +31,22 @@ service.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// 后端统一响应结构（按需使用）
 export interface ApiResult<T = unknown> {
   code: number
   message: string
   data: T
 }
 
-// 响应拦截器：统一处理 401 与业务错误
+export interface PageResult<T = unknown> {
+  list: T[]
+  total: number
+  page: number
+  size: number
+}
+
 service.interceptors.response.use(
   (response) => {
     const res = response.data
-    // 兼容后端两种风格：纯数据 或 { code, message, data }
     if (res && typeof res === 'object' && 'code' in res && 'data' in res) {
       if (res.code !== 0 && res.code !== 200) {
         ElMessage.error(res.message || '请求失败')
@@ -44,8 +59,8 @@ service.interceptors.response.use(
   (error) => {
     const status = error?.response?.status
     if (status === 401) {
-      // token 失效：清理并跳登录
-      localStorage.removeItem('jwt')
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem('ai_market_user')
       ElMessage.error('登录已失效，请重新登录')
       const redirect = window.location.pathname + window.location.search
       window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`
@@ -57,7 +72,6 @@ service.interceptors.response.use(
   }
 )
 
-// 便捷封装
 export const request = {
   get<T = unknown>(url: string, config?: AxiosRequestConfig) {
     return service.get<unknown, T>(url, config)

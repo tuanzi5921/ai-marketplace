@@ -38,7 +38,7 @@ public class RatingService {
     private final MpSubmissionMapper submissionMapper;
     private final SubmissionService submissionService;
 
-    /** 评委权重 0.3，员工权重 0.7 */
+    /** 评委/部门负责人权重 0.3，普通员工权重 0.7 */
     private static final BigDecimal JUDGE_WEIGHT = new BigDecimal("0.3");
     private static final BigDecimal USER_WEIGHT  = new BigDecimal("0.7");
 
@@ -62,7 +62,8 @@ public class RatingService {
                 .eq(MpRating::getUserId, current.getId())
                 .eq(MpRating::getSubmissionId, dto.getSubmissionId()));
 
-        boolean isJudge = current.getRoles() != null && current.getRoles().contains("JUDGE");
+        boolean isJudge = current.getRoles() != null
+                && (current.getRoles().contains("JUDGE") || current.getRoles().contains("DEPT_HEAD"));
         String role = isJudge ? "JUDGE" : "USER";
 
         if (existing != null) {

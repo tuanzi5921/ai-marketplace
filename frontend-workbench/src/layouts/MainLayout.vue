@@ -8,44 +8,76 @@ import {
   Upload,
   Trophy,
   User,
-  ArrowDown
+  ArrowDown,
+  DataAnalysis,
+  Document,
+  Files,
+  TrophyBase,
+  UserFilled,
+  ChatDotRound,
+  Medal
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-// 拉取用户信息（首次进入）
 onMounted(async () => {
   if (auth.isLoggedIn && !auth.user) {
     try {
       const user = await fetchMe()
       auth.setUser(user)
-    } catch {
-      // 静默：request 拦截器已处理 401
-    }
+    } catch { /* 401 已由 request 拦截器处理 */ }
   }
 })
 
-// 激活的菜单项
-const activeMenu = computed(() => '/' + (route.path.split('/')[1] || ''))
+const activeMenu = computed(() => {
+  const segments = route.path.split('/')
+  if (segments[1] === 'admin') return '/admin/' + (segments[2] || '')
+  return '/' + (segments[1] || '')
+})
 
-// 顶部菜单
-const menus = [
+const baseMenus = [
   { index: '/', label: '首页', icon: HomeFilled },
   { index: '/submit', label: '上传作品', icon: Upload },
   { index: '/rankings', label: '排行榜', icon: Trophy },
   { index: '/me', label: '个人中心', icon: User }
 ]
 
+const adminMenus = computed(() => {
+  const menus: { index: string; label: string; icon: any }[] = []
+  if (auth.hasRole(['OPERATOR', 'ADMIN'])) {
+    menus.push({ index: '/admin/dashboard', label: '数据看板', icon: DataAnalysis })
+    menus.push({ index: '/admin/submissions', label: '作品管理', icon: Files })
+    menus.push({ index: '/admin/competitions', label: '大赛配置', icon: TrophyBase })
+    menus.push({ index: '/admin/comments', label: '评论管理', icon: ChatDotRound })
+    menus.push({ index: '/admin/judges', label: '评委管理', icon: Medal })
+  }
+  if (auth.hasRole(['OPERATOR', 'ADMIN', 'JUDGE'])) {
+    menus.push({ index: '/admin/reviews', label: '待审作品', icon: Document })
+  }
+  if (auth.hasRole(['ADMIN'])) {
+    menus.push({ index: '/admin/users', label: '用户管理', icon: UserFilled })
+  }
+  return menus
+})
+
 function goMenu(index: string) {
   router.push(index)
 }
 
-// 用户名展示
 const displayName = computed(() => {
   const u = auth.user
   return u?.displayName || u?.username || '我的'
+})
+
+const roleTags = computed(() => {
+  const u = auth.user
+  if (!u?.roles) return []
+  const map: Record<string, string> = {
+    ADMIN: '超管', OPERATOR: '运营', JUDGE: '评委', DEPT_HEAD: '部门负责人', USER: '用户'
+  }
+  return u.roles.map(r => map[r] || r).filter(t => t !== '用户')
 })
 
 const avatarText = computed(() => {
@@ -55,6 +87,7 @@ const avatarText = computed(() => {
 
 function handleCommand(command: string) {
   if (command === 'me') router.push('/me')
+  else if (command === 'changePassword') router.push('/change-password')
   else if (command === 'logout') {
     auth.logout()
     router.push('/login')
@@ -69,7 +102,6 @@ function handleCommand(command: string) {
         <div class="brand" @click="goMenu('/')">
           <span class="brand__logo">AI</span>
           <span class="brand__name">企业 AI 应用市场</span>
-          <span class="brand__sub">· 工作台</span>
         </div>
 
         <el-menu
@@ -82,10 +114,23 @@ function handleCommand(command: string) {
           active-text-color="#ffffff"
           @select="goMenu"
         >
-          <el-menu-item v-for="m in menus" :key="m.index" :index="m.index">
+          <el-menu-item v-for="m in baseMenus" :key="m.index" :index="m.index">
             <el-icon><component :is="m.icon" /></el-icon>
             <span>{{ m.label }}</span>
           </el-menu-item>
+
+          <template v-if="adminMenus.length > 0">
+            <el-sub-menu index="/admin">
+              <template #title>
+                <el-icon><DataAnalysis /></el-icon>
+                <span>管理后台</span>
+              </template>
+              <el-menu-item v-for="m in adminMenus" :key="m.index" :index="m.index">
+                <el-icon><component :is="m.icon" /></el-icon>
+                <span>{{ m.label }}</span>
+              </el-menu-item>
+            </el-sub-menu>
+          </template>
         </el-menu>
 
         <div class="user-zone">
@@ -100,12 +145,18 @@ function handleCommand(command: string) {
                 <el-dropdown-item command="me">
                   <el-icon><User /></el-icon> 个人中心
                 </el-dropdown-item>
+                <el-dropdown-item command="changePassword">
+                  修改密码
+                </el-dropdown-item>
                 <el-dropdown-item command="logout" divided>
                   退出登录
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <div class="role-tags" v-if="roleTags.length > 0">
+            <el-tag v-for="t in roleTags" :key="t" size="small" effect="dark" type="warning" class="role-tag">{{ t }}</el-tag>
+          </div>
         </div>
       </div>
     </header>
@@ -115,7 +166,7 @@ function handleCommand(command: string) {
     </main>
 
     <footer class="app-footer">
-      <span>© {{ new Date().getFullYear() }} 企业 AI 应用市场 · 员工端工作台</span>
+      <span>© {{ new Date().getFullYear() }} 企业 AI 应用市场</span>
     </footer>
   </div>
 </template>
@@ -172,10 +223,6 @@ function handleCommand(command: string) {
   font-weight: 600;
   letter-spacing: 0.5px;
 }
-.brand__sub {
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 13px;
-}
 
 .top-menu {
   flex: 1;
@@ -194,9 +241,23 @@ function handleCommand(command: string) {
 .top-menu :deep(.el-menu-item:hover) {
   background: rgba(255, 255, 255, 0.06) !important;
 }
+.top-menu :deep(.el-sub-menu__title) {
+  height: 64px;
+  line-height: 64px;
+  color: #e8ecf7 !important;
+}
+.top-menu :deep(.el-sub-menu__title:hover) {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.top-menu :deep(.el-sub-menu .el-menu-item) {
+  color: #333 !important;
+}
 
 .user-zone {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .user-trigger {
   display: inline-flex;
@@ -221,6 +282,13 @@ function handleCommand(command: string) {
 .user-arrow {
   font-size: 12px;
   opacity: 0.8;
+}
+.role-tags {
+  display: flex;
+  gap: 4px;
+}
+.role-tag {
+  border: none;
 }
 
 .app-main {

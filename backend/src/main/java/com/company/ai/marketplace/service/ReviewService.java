@@ -30,27 +30,31 @@ public class ReviewService {
     private final MpReviewLogMapper reviewLogMapper;
     private final SysUserMapper userMapper;
     private final AuditService auditService;
+    private final AuthService authService;
 
     /**
-     * 人工审核：通过。
+     * 人工审核：通过。仅 OPERATOR / ADMIN / JUDGE 可操作。
      */
     @Transactional
     public void approve(Long submissionId, String reason) {
+        authService.requireAnyRole("OPERATOR", "ADMIN", "JUDGE");
         doReview(submissionId, true, reason);
     }
 
     /**
-     * 人工审核：驳回。
+     * 人工审核：驳回。仅 OPERATOR / ADMIN / JUDGE 可操作。
      */
     @Transactional
     public void reject(Long submissionId, String reason) {
+        authService.requireAnyRole("OPERATOR", "ADMIN", "JUDGE");
         doReview(submissionId, false, reason);
     }
 
     /**
-     * 待审队列分页（运营后台用）。
+     * 待审队列分页。仅 OPERATOR / ADMIN / JUDGE 可查看。
      */
     public PageResult<MpSubmission> pendingQueue(int page, int size) {
+        authService.requireAnyRole("OPERATOR", "ADMIN", "JUDGE");
         Page<MpSubmission> p = submissionMapper.selectPage(new Page<>(page, size),
                 new LambdaQueryWrapper<MpSubmission>()
                         .eq(MpSubmission::getStatus, "PENDING")

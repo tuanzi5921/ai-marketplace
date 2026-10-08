@@ -27,8 +27,8 @@ const typeTagMap: Record<string, string> = {
   SAAS: 'warning',
   DOC: 'info'
 }
-function typeTagType(t?: string) {
-  return typeTagMap[t || ''] || 'info'
+function typeTagType(t?: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
+  return (typeTagMap[t || ''] || 'info') as 'primary' | 'success' | 'warning' | 'info' | 'danger'
 }
 function typeLabel(t?: string) {
   return typeOptions.find((o) => o.value === t)?.label || t

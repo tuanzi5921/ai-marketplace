@@ -25,6 +25,10 @@ public class CreateUserDTO {
     @Size(max = 64, message = "账号长度不能超过 64")
     private String account;
 
+    /** 显示用户名，可省略；省略时取账号名 */
+    @Size(max = 64, message = "用户名长度不能超过 64")
+    private String username;
+
     /** 角色列表：USER / OPERATOR / ADMIN / JUDGE / DEPT_HEAD */
     @NotEmpty(message = "至少分配一个角色")
     private List<String> roles;
