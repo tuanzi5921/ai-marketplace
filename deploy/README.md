@@ -1,7 +1,7 @@
 # 企业 AI 应用市场 — 内网部署手册
 
-部署完成时间：2026-09-21　｜　最近更新：2026-09-23（启用 HTTPS、登录链路打通）
-状态：基础设施、应用进程、登录（账号口令）均已验收通过；企微 SSO 待可信域名配置，运营后台接口待补（见 `docs/KNOWN-GAPS.md`）
+部署完成时间：2026-09-21　｜　最近更新：2026-10-08（发版团队 PR #3：运营后台 13 个接口补齐、异常改真实 HTTP 状态码、统一分页结构；同时重新落地被合并回退的分页插件与无封面纯色占位）
+状态：基础设施、应用进程、登录（账号口令）、**运营后台全部菜单**均已验收通过；企微 SSO 待可信域名配置；作品类接口直接返回实体、导致部分列空白（见 `docs/KNOWN-GAPS.md` 的 P1）
 
 ---
 
@@ -99,10 +99,16 @@
 `openssl s_client -verify_hostname ai-marketplace.tri-ibiotech.com` 返回 `Verification: OK`）。
 
 **运营后台用 IP 访问会有「证书名称不匹配」告警**（证书是 `*.tri-ibiotech.com`，不含 IP），
-需手动点继续。要消除告警，推荐给内网 DNS 加一条 split-horizon 记录：
-把 `ai-marketplace.tri-ibiotech.com` 在**内网**解析到 `192.168.1.132`。
-这样内网用户走 `https://ai-marketplace.tri-ibiotech.com:8443/`（证书匹配、无告警），
-外网企微客户端仍解析到公网 IP 走 8081，两边都对，还顺带省掉 NAT 回环。
+需手动点继续。**内网 split-horizon DNS 已配好**（2026-09-30 实测确认）：
+内网 DNS 服务器 `AD1.tri-ibiotech.com`（10.20.101.11）把 `ai-marketplace.tri-ibiotech.com`
+解析到 **192.168.1.132**，因此内网用户直接走
+`https://ai-marketplace.tri-ibiotech.com:8443/`（证书匹配、无告警），
+外网企微客户端仍解析到公网 `121.46.250.190` 走 8081，两边都对，还顺带省掉 NAT 回环。
+
+> 副作用：**在 132 本机用该域名自测会连不上**（`curl` 返回 `code=000 Empty reply from server`）。
+> 因为域名解析到公网 IP，而 8443 并未做公网 DNAT，NAT 回环不通。
+> 服务器本机自测请加 `--resolve ai-marketplace.tri-ibiotech.com:8443:127.0.0.1`，
+> 或直接用 `https://127.0.0.1:8443/`（需 `-k`）。
 
 公网端口映射实测现状（`121.46.250.190`）：
 
@@ -339,7 +345,12 @@ sudo shred -u /tmp/.aitest-cred
   `https://ai-marketplace.tri-ibiotech.com:8081/login` 用账号口令登录成功、跳转作品列表页；
   运营后台登录后跳 `/dashboard`；个人中心 `/me` 正确显示「信息技术部 · ADMIN / OPERATOR / USER」
 - 接口层实测：错误口令与不存在账号均返回 1004（不泄露账号存在性）、
-  无 token 调 `/auth/me` 返回 1001、`/api/submissions` 等分页接口返回正确 JSON
+  无 token 调 `/auth/me` 返回 **HTTP 401 + 业务码 1001**（PR #3 之前一律是 HTTP 200，
+  前端 `status === 401` 的跳转分支因此永不触发，现已能真正生效）、
+  `/api/submissions` 等分页接口返回 `PageResult{list,total,page,size}` 且跨页切片正确
+- **管理员建号 → 用户登录闭环已浏览器实测**（2026-10-12 15:56 发版）：后台建号成功后弹出
+  结果框显示真实登录账号与初始口令，用该口令登录返回 HTTP 200；
+  弹窗里的口令与服务端 `AUTH_DEFAULT_PASSWORD` 的 SHA-256 一致，且明文不进日志与审计表
 - HTTPS 已启用：8081（工作台，对外正式入口）、8443（后台，仅内网）、443（工作台，内网直连）；
   证书链完整，严格校验含主机名匹配均通过
 - 企微凭据已写入，服务器实测 `gettoken` 返回 `errcode 0`
@@ -381,8 +392,50 @@ sudo shred -u /tmp/.aitest-cred
 > 若企微拒绝带端口的回调，退路是让网络侧把公网 443 也映射到 132（或改用官网 nginx 反代），
 > 然后把回调地址改成不带端口的 `https://ai-marketplace.tri-ibiotech.com/login`。
 
-**待办二：运营后台接口补齐（代码侧）**
+**待办二：运营后台接口补齐（代码侧）—— 已于 2026-10-08 完成**
 
-后台现在能登录、能进去，但除「大赛配置」外每个菜单都会报「服务端异常」，
-因为对应 Controller 尚未实现。完整清单、实测证据与修复建议见
-[`docs/KNOWN-GAPS.md`](docs/KNOWN-GAPS.md)。
+团队 PR #3（`116c857`）补齐了原先缺失的全部 13 个接口（新增 `DashboardController`、
+`JudgeController`、`AdminUserController`，`SubmissionController` 补 `/admin`、`/{id}/offline`、
+`DELETE /{id}`，`CommentController` 补 `/reported`、`/{id}/hide`、`/{id}/restore`），
+后台每个菜单都不再报「服务端异常」。已发版到 132 并逐接口与数据库对账，
+证据见 [`docs/KNOWN-GAPS.md`](docs/KNOWN-GAPS.md) 的「已修复（2026-10-08）」。
+
+> **2026-10-12 追加**：团队 `d876aa0`（修登录 bug + 前后台合并 + 角色权限）已发版到 132。
+> 管理页搬进了 `frontend-workbench/src/views/admin/`，按角色在同一站点渲染，
+> 因此 **8443 的 `frontend-admin` 现在是冗余入口**（仍在构建发布，为的是不打断已在用的人）。
+> 本次发版对账证据见 KNOWN-GAPS 的「已修复（2026-10-12）」。
+> 该合并又一次删掉了分页拦截器、封面占位与构建脚本修复，均已重新落地。
+
+**待办三：作品类接口返回实体、员工侧页面字段对不上（代码侧，现存最大的功能性缺口）**
+
+`/submissions*`、`/reviews/pending`、`/rankings/*` 都把 `MpSubmission` 实体原样返回。
+`d876aa0` 已把**管理端**页面改成按实体字段名渲染，那几页现在是好的；
+但**员工侧**页面仍按视图模型写，要的 `author.displayName`/`avgScore`/`raterCount`/`track`/
+`saasUrl`/`rank`/`score` 因此全为 `—`，`tags`/`techStack` 是 JSON 字符串却被当数组渲染。
+页面能打开、不报错，属于显示层缺口。
+清单与建议修法见 [`docs/KNOWN-GAPS.md`](docs/KNOWN-GAPS.md) 的 P1。
+
+**待办四：`DataInitializer` 每次重启都把 admin 口令重置回默认值 —— 已于 2026-10-12 15:56 修复并发版**
+
+历史上实测发生两次，两次都在重启前备份了原口令：
+`/aitest/backup/sys_user-pre-DataInitializer-20261008_141916.sql`、
+`/aitest/backup/sys_user-before-d876aa0-20261012_144528.sql`（均在 131，chmod 600）。
+
+现在改成**只在 `password_hash` 仍等于 `schema.sql` 的占位字面量**（或为空）时才重生成，
+且重生成时读 `app.auth.default-password`，不再自留一份硬编码值。15:56:07 那次启动日志打的是
+`admin 口令已由运维设置，本次启动不改动`，发版前后 `sys_user` 四行的 `MD5(password_hash)` 逐一相同。
+同批发版也去掉了 `views/Login.vue` 在**未登录公开页面**上印默认口令的那行提示。
+证据见 KNOWN-GAPS 的「已修复（2026-10-12 下午）」。
+
+**待办五：没有「重置用户口令」接口（代码侧）**
+
+`AdminUserController` 只有建号、列表、授/撤角色、启/停用，**没有重置口令**。
+建号接口现在会把初始口令回显一次，但关掉弹窗就拿不到了，
+所以「用户忘了口令」/「建号时没记下口令」这两个场景在后台仍然没有出口，
+只能登服务器手工 `UPDATE sys_user SET password_hash=...`。
+建议加 `POST /admin/users/{id}/reset-password`，详见 KNOWN-GAPS 的 P2。
+
+> **现存账号可以用起来**：`mzg` / `mzg02` / `yufei` 三个账号数据库层面没坏，
+> 口令就是 env 里的 `AUTH_DEFAULT_PASSWORD`（实测三个都能登进去），
+> 之前登不进去只是因为管理员拿到的提示是错的。发版后在后台随便建一个新号，
+> 结果弹窗里显示的就是这个默认口令，据此即可登录这三个账号（首登仍会被要求改密）。
