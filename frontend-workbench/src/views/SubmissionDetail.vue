@@ -16,9 +16,13 @@ import {
   deleteOwn as deleteComment,
   type Comment
 } from '@/api/comment'
+import { coverPlaceholderStyle } from '@/utils/cover'
 
 const route = useRoute()
 const submissionId = route.params.id as string
+
+// cover_url 存的可能是网页地址而不是图片，加载失败时退回纯色占位
+const coverBroken = ref(false)
 
 const data = ref<SubmissionDetail | null>(null)
 const loading = ref(false)
@@ -230,8 +234,19 @@ onMounted(() => {
     <el-card v-if="data" class="detail-card" shadow="never">
       <div class="detail-head">
         <div class="cover">
-          <img v-if="data.coverUrl" :src="data.coverUrl" :alt="data.title" />
-          <div v-else class="cover__placeholder">{{ data.title.charAt(0) }}</div>
+          <img
+            v-if="data.coverUrl && !coverBroken"
+            :src="data.coverUrl"
+            :alt="data.title"
+            @error="coverBroken = true"
+          />
+          <div
+            v-else
+            class="cover__placeholder"
+            :style="coverPlaceholderStyle(data.id, data.title)"
+          >
+            {{ data.title.charAt(0) }}
+          </div>
         </div>
         <div class="head-info">
           <div class="head-info__tags">
@@ -469,8 +484,6 @@ onMounted(() => {
   justify-content: center;
   font-size: 72px;
   font-weight: 700;
-  color: #3b5bdb;
-  opacity: 0.5;
 }
 .head-info {
   flex: 1;

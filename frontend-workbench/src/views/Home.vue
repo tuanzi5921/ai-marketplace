@@ -9,8 +9,13 @@ import {
   type SubmissionType
 } from '@/api/submission'
 import { getCurrent, type Competition } from '@/api/competition'
+import { coverPlaceholderStyle } from '@/utils/cover'
 
 const router = useRouter()
+
+// cover_url 存的可能是网页地址而不是图片（现网 5 条里有 3 条如此），
+// 加载失败时也要退回纯色占位，否则会显示浏览器默认的破图图标
+const brokenCovers = reactive<Record<string, boolean>>({})
 
 // 作品类型选项
 const typeOptions: { label: string; value: SubmissionType | '' }[] = [
@@ -198,8 +203,19 @@ onUnmounted(() => {
         @click="goDetail(item.id)"
       >
         <div class="cover">
-          <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.title" />
-          <div v-else class="cover__placeholder">{{ item.title.charAt(0) }}</div>
+          <img
+            v-if="item.coverUrl && !brokenCovers[item.id]"
+            :src="item.coverUrl"
+            :alt="item.title"
+            @error="brokenCovers[item.id] = true"
+          />
+          <div
+            v-else
+            class="cover__placeholder"
+            :style="coverPlaceholderStyle(item.id, item.title)"
+          >
+            {{ item.title.charAt(0) }}
+          </div>
           <el-tag class="cover__type" :type="typeTagType(item.type)" effect="dark" size="small">
             {{ typeLabel(item.type) }}
           </el-tag>
@@ -334,8 +350,6 @@ onUnmounted(() => {
   justify-content: center;
   font-size: 56px;
   font-weight: 700;
-  color: #3b5bdb;
-  opacity: 0.5;
 }
 .cover__type {
   position: absolute;
