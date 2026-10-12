@@ -15,6 +15,9 @@ public class UserVO {
 
     private Long id;
 
+    /** 登录账号；建号时可能由邮箱前缀推导，前端要展示准确的登录名就得靠它 */
+    private String account;
+
     /** 员工姓名 */
     private String username;
 

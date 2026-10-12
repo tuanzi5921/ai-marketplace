@@ -293,9 +293,10 @@ INSERT IGNORE INTO mp_category (dim, code, name, sort_order) VALUES
   ('TECH_STACK', 'OTHER',   '其它',      99);
 
 -- ----------- 初始化管理员账号（本地账号密码登录） -----------
--- 默认口令为 Welcome@2026，首次登录强制改密。
--- BCrypt hash 会在应用启动时由 DataInitializer 自动校验 / 重新生成，
--- 此处占位 hash 仅用于 INSERT 占位，启动后会被替换为正确值。
+-- 初始口令取 app.auth.default-password（env: AUTH_DEFAULT_PASSWORD），首次登录强制改密。
+-- 下面这个占位 hash 不是任何实现的合法 BCrypt 输出，仅用于 INSERT 占位。
+-- DataInitializer 只在「哈希仍等于该占位字面量」时重生成一次并置 must_change_password=1；
+-- 运维改过的口令不会被启动流程覆盖。
 -- 部署时若需重置口令，可执行：
 --   UPDATE sys_user SET password_hash='<新哈希>', must_change_password=1 WHERE account='admin';
 INSERT IGNORE INTO sys_user

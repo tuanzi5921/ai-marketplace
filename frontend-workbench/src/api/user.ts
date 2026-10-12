@@ -2,6 +2,7 @@ import { request, type PageResult } from './request'
 
 export interface UserItem {
   id: string
+  account?: string
   username: string
   displayName: string
   department?: string
@@ -12,8 +13,14 @@ export interface UserItem {
   mustChangePassword?: boolean
 }
 
+export interface CreateUserResult {
+  user: UserItem
+  /** 初始口令明文，后端只在创建时返回这一次，别处拿不到 */
+  initialPassword: string
+}
+
 export function createUser(payload: { email: string; account?: string; username?: string; roles: string[] }) {
-  return request.post<UserItem>('/admin/users', payload)
+  return request.post<CreateUserResult>('/admin/users', payload)
 }
 
 export function listUsers(page = 1, size = 10) {

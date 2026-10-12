@@ -115,14 +115,30 @@ async function handleCreateUser() {
   }
   createSubmitting.value = true
   try {
-    await createUser({ email: createForm.email.trim(), roles: createForm.roles })
-    ElMessage.success('用户已创建，初始口令为 Welcome@2026')
+    const res = await createUser({ email: createForm.email.trim(), roles: createForm.roles })
     createDialogVisible.value = false
+    createdAccount.value = res.user?.account || createForm.email.trim().split('@')[0]
+    createdPassword.value = res.initialPassword || ''
+    createdDialogVisible.value = true
     load()
   } catch {
     /* 错误已提示 */
   } finally {
     createSubmitting.value = false
+  }
+}
+
+// 初始口令只在这一次响应里出现，关掉弹窗就再也拿不到，所以给个复制入口
+const createdDialogVisible = ref(false)
+const createdAccount = ref('')
+const createdPassword = ref('')
+
+async function copyInitialPassword() {
+  try {
+    await navigator.clipboard.writeText(createdPassword.value)
+    ElMessage.success('初始口令已复制')
+  } catch {
+    ElMessage.warning('浏览器拒绝了剪贴板访问，请手动选中复制')
   }
 }
 
@@ -247,7 +263,7 @@ onMounted(load)
           </el-select>
         </el-form-item>
         <p class="create-hint muted">
-          初始密码为 Welcome@2026，用户首次登录后需修改。
+          初始口令由服务端下发，创建成功后只显示一次，请及时转告用户；用户首次登录后需自行修改。
         </p>
       </el-form>
       <template #footer>
@@ -255,6 +271,29 @@ onMounted(load)
         <el-button type="primary" :loading="createSubmitting" @click="handleCreateUser">
           创建
         </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="createdDialogVisible" title="用户已创建" width="480px">
+      <el-alert
+        type="warning"
+        :closable="false"
+        show-icon
+        title="初始口令只显示这一次，关闭后无法再查看"
+        style="margin-bottom: 16px;"
+      />
+      <el-form label-position="top">
+        <el-form-item label="登录账号">
+          <el-input :model-value="createdAccount" readonly />
+        </el-form-item>
+        <el-form-item label="初始口令">
+          <el-input :model-value="createdPassword" readonly />
+        </el-form-item>
+      </el-form>
+      <p class="create-hint muted">请把以上账号与口令转告用户，其首次登录后会被要求修改口令。</p>
+      <template #footer>
+        <el-button @click="copyInitialPassword">复制口令</el-button>
+        <el-button type="primary" @click="createdDialogVisible = false">我已记录</el-button>
       </template>
     </el-dialog>
   </div>

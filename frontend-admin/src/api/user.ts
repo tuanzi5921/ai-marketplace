@@ -4,6 +4,7 @@ import type { UserRole } from '@/stores/auth'
 /** 用户项 */
 export interface UserItem {
   id: string
+  account?: string
   username: string
   displayName: string
   department?: string
@@ -13,13 +14,20 @@ export interface UserItem {
   avatar?: string
 }
 
+/** 建号结果 */
+export interface CreateUserResult {
+  user: UserItem
+  /** 初始口令明文，后端只在创建时返回这一次 */
+  initialPassword: string
+}
+
 /**
  * 新建用户（管理员）
  * POST /api/admin/users
- * 初始口令固定为 Welcome@2026，用户首次登录后强制改密
+ * 初始口令取后端 app.auth.default-password，随响应返回一次，用户首次登录后强制改密
  */
-export function createUser(payload: { email: string; roles: UserRole[] }): Promise<UserItem> {
-  return http<UserItem>({
+export function createUser(payload: { email: string; roles: UserRole[] }): Promise<CreateUserResult> {
+  return http<CreateUserResult>({
     url: '/admin/users',
     method: 'post',
     data: payload

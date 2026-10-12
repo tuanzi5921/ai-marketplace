@@ -2,6 +2,7 @@ package com.company.ai.marketplace.controller;
 
 import com.company.ai.marketplace.common.Result;
 import com.company.ai.marketplace.dto.CreateUserDTO;
+import com.company.ai.marketplace.dto.CreateUserResultVO;
 import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.dto.UserVO;
 import com.company.ai.marketplace.entity.SysUser;
@@ -29,9 +30,9 @@ public class AdminUserController {
 
     private final AuthService authService;
 
-    /** 创建用户账号 */
+    /** 创建用户账号；返回体含初始口令明文（仅此一次） */
     @PostMapping("/users")
-    public Result<UserVO> createUser(@Valid @RequestBody CreateUserDTO dto) {
+    public Result<CreateUserResultVO> createUser(@Valid @RequestBody CreateUserDTO dto) {
         return Result.ok(authService.createUser(dto));
     }
 

@@ -9,6 +9,7 @@ import com.company.ai.marketplace.common.BizException;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.config.AppProperties;
 import com.company.ai.marketplace.dto.CreateUserDTO;
+import com.company.ai.marketplace.dto.CreateUserResultVO;
 import com.company.ai.marketplace.dto.LoginResultVO;
 import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.dto.UserVO;
@@ -78,10 +79,10 @@ public class AuthService {
     }
 
     /**
-     * 管理员创建用户：邮箱作为账号 + 固定默认口令 + 角色分配，首次登录强制改密。
+     * 管理员创建用户：邮箱作为账号 + 配置的默认口令 + 角色分配，首次登录强制改密。
+     * <p>返回体带上初始口令明文，供管理员转告用户；该值只在这里出现一次。
      */
-    public UserVO createUser(CreateUserDTO dto) {
-        // 权限校验：仅 ADMIN 可创建用户
+    public CreateUserResultVO createUser(CreateUserDTO dto) {
         requireAdmin();
         String email = dto.getEmail();
         if (StrUtil.isBlank(email) || !email.contains("@")) {
@@ -93,10 +94,11 @@ public class AuthService {
         if (count != null && count > 0) {
             throw new BizException(ErrorCode.PARAM_INVALID.getCode(), "账号已存在: " + account);
         }
+        String initialPassword = props.getAuth().getDefaultPassword();
         SysUser user = new SysUser();
         user.setWecomUserid(null);
         user.setAccount(account);
-        user.setPasswordHash(BCrypt.hashpw(props.getAuth().getDefaultPassword()));
+        user.setPasswordHash(BCrypt.hashpw(initialPassword));
         user.setUsername(dto.getUsername() != null ? dto.getUsername() : account);
         user.setEmail(email);
         // 确保 USER 角色始终存在
@@ -107,11 +109,15 @@ public class AuthService {
         user.setEnabled(1);
         user.setMustChangePassword(1);
         userMapper.insert(user);
+        // 口令不进日志、不进审计明细
         log.info("管理员创建用户: id={} account={} email={} roles={}",
                 user.getId(), account, email, user.getRoles());
         auditService.log("PERMISSION", "CREATE_USER", "USER", user.getId(),
                 "account=" + account + " roles=" + user.getRoles());
-        return toUserVO(user);
+        CreateUserResultVO result = new CreateUserResultVO();
+        result.setUser(toUserVO(user));
+        result.setInitialPassword(initialPassword);
+        return result;
     }
 
     /**
@@ -202,6 +208,7 @@ public class AuthService {
     private UserVO toUserVO(SysUser u) {
         UserVO vo = new UserVO();
         vo.setId(u.getId());
+        vo.setAccount(u.getAccount());
         vo.setUsername(u.getUsername());
         vo.setDisplayName(u.getUsername());
         vo.setDepartment(u.getDepartment());

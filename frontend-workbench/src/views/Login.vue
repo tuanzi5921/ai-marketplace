@@ -85,7 +85,7 @@ async function handleLogin() {
           </el-button>
         </el-form>
 
-        <p class="tip">首次登录默认密码为 Welcome@2026，登录后请及时修改</p>
+        <p class="tip">初始口令由管理员发放，首次登录后请及时修改</p>
       </div>
 
       <footer class="login-card__foot">
