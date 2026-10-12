@@ -30,6 +30,8 @@ class DashboardServiceTest {
     private SysUserMapper userMapper;
     @Mock
     private MpCompetitionMapper competitionMapper;
+    @Mock
+    private AuthService authService;
 
     @InjectMocks
     private DashboardService dashboardService;

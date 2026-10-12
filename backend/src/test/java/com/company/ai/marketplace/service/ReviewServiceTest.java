@@ -1,10 +1,13 @@
 package com.company.ai.marketplace.service;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.ai.marketplace.common.BizException;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.dto.PageResult;
+import com.company.ai.marketplace.dto.SubmissionVO;
 import com.company.ai.marketplace.entity.MpReviewLog;
 import com.company.ai.marketplace.entity.MpSubmission;
 import com.company.ai.marketplace.mapper.MpReviewLogMapper;
@@ -12,6 +15,7 @@ import com.company.ai.marketplace.mapper.MpSubmissionMapper;
 import com.company.ai.marketplace.mapper.SysUserMapper;
 import com.company.ai.marketplace.security.LoginUser;
 import com.company.ai.marketplace.security.ThreadLocalContext;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,6 +40,10 @@ class ReviewServiceTest {
     private SysUserMapper userMapper;
     @Mock
     private AuditService auditService;
+    @Mock
+    private AuthService authService;
+    @Mock
+    private SubmissionVoAssembler voAssembler;
 
     @InjectMocks
     private ReviewService reviewService;
@@ -44,6 +52,12 @@ class ReviewServiceTest {
 
     @BeforeEach
     void setUp() {
+        // 纯 Mockito 环境没有 Spring，MyBatis-Plus 的 TableInfo 缓存不会自动建立，
+        // doReview 里的 LambdaUpdateWrapper.set(MpSubmission::getStatus, …) 会因取不到列名而抛
+        // "can not find lambda cache for this entity"。这里手动预热一次。
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(new MybatisConfiguration(), ""), MpSubmission.class);
+
         LoginUser reviewer = new LoginUser();
         reviewer.setId(99L);
         reviewer.setUsername("operator");
@@ -124,8 +138,9 @@ class ReviewServiceTest {
         page.setRecords(List.of(mockSubmission));
         page.setTotal(1);
         when(submissionMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
+        when(voAssembler.toVOList(any())).thenReturn(List.of(new SubmissionVO()));
 
-        PageResult<MpSubmission> result = reviewService.pendingQueue(1, 10);
+        PageResult<SubmissionVO> result = reviewService.pendingQueue(1, 10);
 
         assertNotNull(result);
         assertEquals(1, result.getList().size());
@@ -141,8 +156,9 @@ class ReviewServiceTest {
         page.setRecords(List.of());
         page.setTotal(0);
         when(submissionMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
+        when(voAssembler.toVOList(any())).thenReturn(List.of());
 
-        PageResult<MpSubmission> result = reviewService.pendingQueue(1, 10);
+        PageResult<SubmissionVO> result = reviewService.pendingQueue(1, 10);
 
         assertNotNull(result);
         assertTrue(result.getList().isEmpty());

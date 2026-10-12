@@ -4,78 +4,10 @@
 > 2026-09-30 修掉；团队 PR #3（`116c857`）补齐了**运营后台全部 13 个接口**与**真实 HTTP 状态码**，
 > 已于 **2026-10-08 14:24 发版到 132** 并逐项对账；团队 `d876aa0`（修登录 bug + 前后台合并 +
 > 角色权限）已于 **2026-10-12 14:47 发版到 132** 并浏览器实测；**管理员建号登不进去 + DataInitializer
-> 每次重启冲掉 admin 口令**已于 **2026-10-12 15:56 发版到 132**，建号→登录闭环已浏览器实测，
-> 见文末「已修复」。
+> 每次重启冲掉 admin 口令**已于 **2026-10-12 15:56 发版到 132**，建号→登录闭环已浏览器实测；
+> **员工侧作品/排行/评分字段大面积对不上（曾是现存最大的功能性缺口）**已于
+> **2026-10-12 17:30 发版到 132**，评分→回显闭环已浏览器实测，见文末「已修复」。
 > 本文记录仍然存在的**代码层面**缺口，每条附实测证据，按优先级排序。
-
----
-
-## P1 — 作品类接口直接返回实体，员工侧页面要的字段大面积对不上（现存最大的功能性缺口）
-
-`/submissions`、`/submissions/{id}`、`/submissions/admin`、`/submissions/mine`、`/reviews/pending`、
-`/rankings/*` 全部把 `MpSubmission` 实体原样序列化返回：没有 VO、没有 join `sys_user`、
-没有拼 `mp_saas_link`。
-
-`d876aa0`（2026-10-12 发版）把**管理端**页面改成按实体字段名渲染，所以那几页现在是对的；
-但**员工侧**页面仍按视图模型写，字段因此取不到值。页面**不报错、不白屏**，
-相关列/项静默渲染成 `—`。
-
-### 实测：四个接口返回的 key 完全相同（2026-10-12，132 本机 `127.0.0.1:8080`，带合法 token）
-
-`/submissions/admin?page=1&size=1`、`/submissions/2`、`/reviews/pending?page=1&size=1`、
-`/rankings/overall?n=2` 返回的都是这 23 个 key：
-
-```
-authorId  businessDomain  coverUrl  createdAt  deleted  detailDesc  downloadCount
-id  latestArtifactId  publishedAt  ratingAvg  ratingCount  rejectReason  reviewedAt
-reviewedBy  shortDesc  status  tags  techStack  title  type  updatedAt
-usageScenario  version
-```
-
-### 管理端：`d876aa0` 已改对，无需处理
-
-`views/admin/SubmissionManagement.vue:98-100` 与 `views/admin/PendingReviews.vue:81-83`
-现在直接用 `downloadCount` / `ratingAvg` / `createdAt`，与实体一致。
-2026-10-12 浏览器实测：作品管理列出 5 条真实作品、Total 5，下载量与提交时间均有值；
-待审作品列出 2 条、Total 2，与看板「待审数 2」一致。
-
-### 员工侧：仍缺字段（`frontend-workbench/src/views/`）
-
-| 前端用的字段 | 后端实际返回 | 后果（2026-10-12 浏览器实测已复现） |
-|---|---|---|
-| `item.author?.displayName`（`Home.vue:246`）、`data.author?.displayName` / `.department`（`SubmissionDetail.vue:259-260`） | 只有 `authorId` | 首页卡片作者与详情页「作者：」都是 `—` |
-| `item.avgScore` / `item.raterCount`（`Home.vue:243-244`）、`data.avgScore` / `data.raterCount`（`SubmissionDetail.vue:274-276`）、`row.avgScore` / `row.raterCount`（`Me.vue:147-148`） | `ratingAvg` / `ratingCount` | 评分显示 `—`、人数恒为 `(0人)` |
-| `data.track`（`SubmissionDetail.vue:254`）、`row.track`（`Me.vue:137`） | 无（只有 `businessDomain`） | 绿色赛道标签永不渲染（详情页看到的「通用办公」来自 `businessDomain`，是另一个标签） |
-| `data.saasUrl` / `data.saasCredentials`（`SubmissionDetail.vue:281-294`） | 无（数据在 `mp_saas_link`，未拼装） | SaaS 作品的访问入口与凭据整块缺失 |
-| `item.rank` / `item.score`（`Ranking.vue:124,147,173,195,219,226`） | `/rankings/*` 返回的也是实体 | 总榜/赛道榜/大赛榜的名次与分数全是 `—` |
-| `data?.tracks`（`Ranking.vue:77`） | 无此结构 | 「各赛道」下拉为空 |
-
-### `tags` / `techStack` 是字符串，前端当数组用
-
-实体里这两个字段都是 `String`（库里存 JSON 文本），前端却按数组消费：
-`Home.vue:228` 的 `(item.techStack || []).slice(0, 3)`、`SubmissionDetail.vue:314,320,323,326`
-的 `v-for` 与 `?.length`。字符串也有 `.length`，所以**不报错、不白屏**，
-但 `v-for` 会逐字符迭代、`slice(0,3)` 切出的是前 3 个字符，标签显示成乱码片段。
-这条比上面的空白列更隐蔽，因为它「看起来在动」。
-（2026-10-12 现网两条已发布作品这两个字段都是 `null`，所以暂时看不出症状；
-一旦有人填了值就会暴露。）
-
-### 建议修法
-
-后端补一层 VO（`SubmissionVO` / `ReviewItemVO` / `RankingItemVO`）：
-join `sys_user` 取 `author.displayName` + `author.department`，
-`ratingAvg`→`avgScore`，`ratingCount`→`raterCount`，`businessDomain`→`track`，
-`tags`/`techStack` 在后端反序列化成 `List<String>` 再返回，SaaS 作品拼 `mp_saas_link`，
-`/rankings/*` 补 `rank` 与 `score`。
-
-管理端已经按实体口径写好了，所以 VO 要么**只加字段不改名**（在实体基础上追加
-`author`/`avgScore`/`raterCount`/`track`/`saasUrl`，两套名字并存），要么连管理端一起改口径。
-**别只改一边**，否则会把刚修好的管理端再弄坏。
-
-> 不建议在员工侧前端逐页加适配层。2026-09-30 我曾在 `frontend-admin/src/api/review.ts` 里加过
-> 一个 `toItem()` 适配（作者退化为「用户 #ID」），PR #3 合并时被覆盖删掉了。
-> 前端适配只能改字段名、改不出「后端没查的表」——作者姓名与部门在客户端根本无从获得，
-> 这类缺口只能在后端补。
 
 ---
 
@@ -126,6 +58,170 @@ https://open.weixin.qq.com/connect/oauth2/authorize?appid=wwca6dedc33172f790
 
 - 把该字段改成真正的图片上传（复用 `/submissions` 的 multipart 通道，落到 `/aitest/storage/files`）
 - 或至少加前端校验：只接受图片扩展名 / `image/*`，并在提交时用 `Image()` 预加载试一次
+
+---
+
+## 已修复（2026-10-12 傍晚）—— 作品/排行/评分字段整层补齐，评分后能回显了
+
+**用户报的现象**：「评分之后没有显示」。
+
+**根因比现象大**：前端评分后确实重新拉了接口，但接口返回的是 `MpSubmission` 实体原样序列化，
+根本没有前端要读的 `avgScore` / `raterCount` / `author` / `track` 这些键——所以拉回来也渲染不出东西。
+这就是原来那份 P1「作品类接口直接返回实体，员工侧页面要的字段大面积对不上」，
+评分不显示只是它最容易被人撞见的一个切面。因此按用户选定的**整层补齐**做，一次把 P1 全解决，
+而不是只给评分那一处打补丁。
+
+### 改法：后端补一层 VO，**只加字段、不改名**
+
+管理端页面在 `d876aa0` 里已经按实体口径（`ratingAvg` / `ratingCount` / `businessDomain`）写好了，
+所以 VO 不能改名，否则会把刚修好的三页再弄坏。落地成两套名字并存：
+
+新增 6 个文件（共 387 行）：
+
+| 文件 | 作用 |
+|---|---|
+| `dto/SubmissionVO.java` | 实体全部字段（原名保留）+ 追加 `avgScore` / `raterCount` / `track` / `author` / `saasUrl` / `saasCredentials` / `fileName` / `fileSize` / `contentType` |
+| `dto/AuthorVO.java` | join `sys_user` 得到的作者摘要；**故意不含** `account` / `roles` / `passwordHash` / `email` / `mobile` |
+| `dto/RankingItemVO.java` | 继承 `SubmissionVO`，追加 `rank` / `score` |
+| `dto/CompetitionRankingVO.java` | `/rankings/competition` 的 `competitionName` + `tracks[]` + `overall[]` 结构 |
+| `dto/MyRatingVO.java` | 我的四维评分 + `ratedByRole` + `ratedAt` + 该作品的 `avgScore` / `raterCount` |
+| `service/SubmissionVoAssembler.java` | 批量装配：一次 `IN` 查 `sys_user` / `mp_saas_link` / `mp_submission_artifact`，避免逐条 N+1 |
+
+两处**有意的类型收敛**（键名不变，只变类型）：`tags` / `techStack` 在实体里是字符串（库里存 JSON 文本），
+前端一直按数组消费（`v-for` / `slice(0,3)`）。字符串也有 `.length`，所以过去不报错、只是渲染成乱码片段。
+现在在后端反序列化成 `List<String>` 再下发。
+（`SubmissionVO` 独立成类而不是 `extends MpSubmission`，是因为 Java 不允许把父类的
+`getTags(): String` 覆写成 `getTags(): List<String>`。）
+
+配套改动：`PageResult` 加了一个 `of(Page<S>, List<T>)` 入口——装配 VO 要按批 join 关联表，
+沿用原来那个逐条 `Function` 的 `from()` 会退化成 N+1。
+
+### 新接口：`GET /api/ratings/submissions/{id}/mine`
+
+按用户选定的**「展示汇总 + 我的评分」**：详情页显示综合分与评分人数；当前用户评过就再显示他自己的四维分，
+且评分弹窗按上一次的分值预填。未评过时 `rated=false`、四维为 `null`，但 `avgScore` / `raterCount` 照样返回，
+所以「还没评过」和「没人评过」两种空态能区分开。
+
+### 前端
+
+`api/rating.ts` 加 `MyRating` 类型与 `myRating()`；`SubmissionDetail.vue` 加「我的评分」区块
+（未评过 → 提示先下载；评过 → 只读四星 + 评语 + 「以评委/员工身份计入综合评分」+ 评分时间），
+评分成功后重新拉 `submissions/{id}` 与 `/mine`，按钮文案在「我要评分」/「修改我的评分」之间切换。
+
+### 发版事实
+
+- 发布包 `ai-marketplace-release-20261012-172354.tar.gz`，48,709,649 B，
+  md5 `620ed641a35fdcd902d88d3d29ba3415`（本机构建产物与 132 `/aitest/packages/` 归档件同 md5）
+- 17:30:26 部署到 132，后端 4.938 s 启动完成，Tomcat 8080 + context path `/api`
+- 线上 jar md5 `b6581ddd91c801173501b0115201090d`，与本机 `backend/target/ai-marketplace.jar` 一致
+- 回滚件由 `deploy-release.sh` 自动留成 `ai-marketplace.jar.prev-20261012_173026`（保留最近 3 个）
+- **`frontend-admin` 一行没动**：15:56 与 17:30 两个发布包里的 admin 入口 chunk 同名
+  `index-JelEJ0eq.js`。vite 的 chunk 名是内容哈希，**同名即同字节**，所以 8443 那套后台的产物完全没变。
+
+### 证据一：服务器本机接口对账（判据是「接口值 == 同一时刻库里的值」，不是「接口返回成功」）
+
+66 项检查全部通过。每一步先用 `mysql` 现查库，再拿接口返回逐字段比。覆盖
+`/submissions`、`/submissions/{id}`、`/submissions/admin`、`/submissions/mine`、`/reviews/pending`、
+`/rankings/overall`、`/rankings/tracks/{track}`、`/rankings/competition`、
+`/ratings`、`/ratings/submissions/{id}/mine`、`/submissions/{id}/download`。
+
+### 证据二：浏览器端到端实测（17:54–17:57，`https://ai-marketplace.tri-ibiotech.com:8081/`）
+
+用一个一次性 JUDGE 探针账号跑完整闭环：
+
+1. **首页**：卡片显示 `5.0` + `(2人)`，作者名有值，技术栈渲染成 `Java` / `Mysql` / `Spring Boot` 三个独立标签
+   （不再是逐字符切出来的乱码片段）
+2. **详情页（评分前）**：`作者：系统管理员 · 信息技术部`、赛道标签、`5.0 评分 / 2人`、
+   「我的评分」区显示 `你还没有为这个作品评分，下载后即可参与评分。`
+3. **下载 → 评分**：四个滑杆设成 **4 / 5 / 3 / 2**（故意取不同值，好让加权结果能被区分出来），
+   提交后弹 `评分成功，感谢您的评价`，前端自动重拉三个接口
+4. **评分后立即回显**：汇总变 `4.5 评分 / 3人`，「我的评分」区列出四维 4/5/3/2、评语原文、
+   `以评委身份计入综合评分`、时间戳；按钮变「修改我的评分」
+5. **改分走覆盖而非追加**：重开弹窗，四维与评语**已按上次预填**；把创新性 2→4 再提交，
+   汇总变 `4.7 / 3人`（人数没变），库里 `mp_rating` 仍是**同一行 id=5**（UPDATE，不是 INSERT）
+6. **排行榜**：总榜/各赛道/大赛榜三个 tab 都渲染出名次与分数（`5.00` / `4.70`），
+   大赛榜按赛道分组；三个接口都返回 `rank` + `score`
+7. **控制台**：除我自己那次打错路径的 `/api/rankings`（该路径本就不存在，返回
+   `NoResourceFoundException` → HTTP 500 + code 5000）外，零 error 零 warning
+
+**权重公式被真实数据区分出来了**，这是本次最关键的一条证据：
+评委 3.5 分（1 人）+ 员工 5.0 分（2 人），按 3:7 加权得 `3.5×0.3 + 5.0×0.7 = 4.55`，库里就是 `4.55`；
+若代码走的是简单平均则应为 `4.33`。改分后同理 `4.0×0.3 + 5.0×0.7 = 4.70`，库里 `4.70`。
+两次都对不上简单平均，说明加权确实生效，不是碰巧。
+
+### 证据三：管理端无回归
+
+- **静态**：全仓 grep，`tags` / `techStack` **没有任何一处 `.split()`**，把字符串改成数组不会打破谁；
+  逐页提取 `prop="…"` 与模板里的点号访问，管理端读的
+  `id` / `title` / `type` / `status` / `downloadCount` / `ratingAvg` / `createdAt` 在 `SubmissionVO` 里全部原名保留
+- **浏览器**（17:58，探针临时授 ADMIN 后实测）：
+  作品管理列出 5 条、`Total 5`，TRI_MEETING 行显示下载 5 / 评分 4.7（当时的实时值）；
+  待审作品列出 1 条 PENDING、`Total 1`，通过/退回按钮在位；
+  数据看板 总作品数 5 / 待审数 1 / 累计下载 7 / 活跃用户 7；
+  三页 `hasUndefined=false`、`hasNaN=false`，控制台零消息
+
+### 探针清理与还原对账（18:02）
+
+删除前先 `mysqldump` 备份到 `/aitest/backup/probe-ui-cleanup-20261012-180211.sql`（chmod 600）。
+只删 uid=11 自己的行：`mp_rating` 1 行、`mp_download_log` 1 行、`sys_user` 1 行（**硬删**——
+`account` 是 UNIQUE，软删会占住唯一索引），并把对应作品 `download_count` 减 1，
+再按 `RatingService.recalculateRatingAvg()` 的**同一公式**在库外重算汇总。
+
+真人评分一行未动（uid=9 `test01`、uid=10 `yf` 共 3 行，删除前后逐一比对相同）。
+还原后复核：作品 1 = `5.00 / 2人 / 下载4`、作品 2 = `5.00 / 1人 / 下载2`，与探针介入前完全一致；
+`sys_user` 里 `probe_ui` 残留 0。线上接口复读也一致：
+`/submissions/1` 回 `ratingAvg=5.0 avgScore=5.0 ratingCount=2 raterCount=2 downloadCount=4`，
+`/ratings/submissions/1/mine` 对未评过的 `mzg02` 回 `rated=false` + 四维 `null` + `avgScore=5.00 raterCount=2`。
+
+服务器 `/tmp` 下本次用的脚本（`probe-setup.py` / `probe-cleanup.py` / `_verify_rating.py` /
+root 属主的 `dbq.sh`）已全部删除，发布包已从 `/tmp` 归档进 `/aitest/packages/`。
+
+### 顺带修掉的两个仓库级问题（不影响已部署产物，但影响下一个人）
+
+**一、`.gitignore` 把两个必需源文件吞了，干净克隆的仓库编译不过。**
+
+`.gitignore:58` 原来是一行不带前导斜杠的 `storage/`（本意是忽略运行时上传目录）。
+Git 对不含斜杠的模式是**任意层级匹配**，于是它同时命中了
+`backend/src/main/java/com/company/ai/marketplace/integration/storage/`，
+把 `StorageService.java` 与 `LocalStorageService.java` 一起排除在版本控制之外——
+这两个文件**从来没有被提交过**，只存在于本机工作副本里。
+
+证据：`git worktree add /tmp/aimkt-head HEAD` 开一份干净副本后 `mvn -o test` 直接编译失败，
+报 `程序包 com.company.ai.marketplace.integration.storage 不存在`
+（`SubmissionService.java:12`、`SubmissionController.java:9`）；
+把这两个文件拷进副本即可编译通过，说明 `.gitignore` 是唯一原因。
+
+已改：`storage/` → `/storage/`（锚定到仓库根，运行时目录照样忽略），并把两个源文件纳入版本控制。
+全仓复扫 `git ls-files --others --ignored --exclude-standard`，
+除 `.idea/` 之外已无任何被忽略的源文件。
+
+**二、13 个单元测试里有 8 个是红的（HEAD 基线），现已全绿。**
+
+`d876aa0` 给 `ReviewService` / `DashboardService` 加了 `AuthService` 依赖，但没给对应测试加 `@Mock`，
+`@InjectMocks` 注进来的是 `null`，8 个用例全部 NPE 在 `authService.requireAnyRole(…)`。
+
+本次补齐 `@Mock AuthService`（`ReviewServiceTest`、`DashboardServiceTest`），
+并在 `ReviewServiceTest.setUp()` 里预热 MyBatis-Plus 的 `TableInfo`——
+纯 Mockito 环境没有 Spring 容器，`doReview()` 里的
+`LambdaUpdateWrapper.set(MpSubmission::getStatus, …)` 取不到列名缓存，会抛
+`can not find lambda cache for this entity`。这个错原先被前面的 NPE 挡着，补了 mock 才暴露出来。
+
+结果对比（同一台机、同一份本地仓库、`mvn -B -o test`）：
+
+| | Tests run | Failures | Errors |
+|---|---|---|---|
+| HEAD 干净副本 | 13 | 2 | 6 |
+| 本次改动（补 VO 后、修测试前） | 13 | 0 | 4 |
+| 本次改动（修完测试） | 13 | **0** | **0** |
+
+⚠️ `deploy/build-release.ps1:53` 用的是 `mvn -B clean package -DskipTests`，
+所以这些红灯**从来没被发版流程拦住过**。要不要把 `-DskipTests` 去掉由团队定；
+至少现在测试是绿的，去掉不会立刻卡住发版。
+
+### 顺带发现，未修，已单独立条
+
+- 评分小数位三个页面不一致（`toFixed(1)` vs `toFixed(2)`），4.55 在详情页显示成 4.5 → 见下方 P3
+- `recalculateRatingAvg()` 在「评分被删光」时 early-return，汇总分不清零（当前无触发路径）→ 见下方 P3
 
 ---
 
@@ -287,6 +383,45 @@ workbench `index-ChPbVqB9.js`、admin `index-JelEJ0eq.js`，与本机 `dist/inde
 建议去掉兜底：`default-password: ${AUTH_DEFAULT_PASSWORD}` 不带默认值，
 并在启动时校验非空（空则 fail-fast），把「忘了配」变成启动失败而不是静默弱口令。
 `schema.sql` 里 admin 那行的占位哈希保持现状即可——`DataInitializer` 只在它仍是占位值时才重生成。
+
+---
+
+## P3 — 同一个评分在三个页面显示的小数位不一致
+
+后端 `rating_avg` 是 `DECIMAL(3,2)`（库里存 `4.55`），前端却按两套位数渲染：
+
+| 位置 | 代码 | 库里 4.55 时显示 |
+|---|---|---|
+| 首页卡片 | `Home.vue:243` `toFixed(1)` | `4.5` |
+| 个人中心 | `Me.vue:147` `toFixed(1)` | `4.5` |
+| 作品详情 | `SubmissionDetail.vue:301` `toFixed(1)` | `4.5` |
+| 排行榜（总榜/赛道/大赛） | `Ranking.vue:147,195,226` `toFixed(2)` | `4.55` |
+
+两处后果：一是同一个作品在排行榜是 `4.55`、点进详情变 `4.5`，用户会怀疑数据错了；
+二是 `toFixed(1)` 对 `4.55` 得 `"4.5"` 而不是 `"4.6"`——JSON 里的 `4.55` 被 JS 解析成
+`4.549999999999999822…`，`toFixed` 按这个值四舍五入。这不是 JS 的 bug，是二进制浮点的固有行为，
+但只要保留 1 位就会持续踩到。
+
+建议统一成 2 位（`toFixed(2)`），与库里的精度和排行榜一致；
+或者干脆让后端把展示用的字符串一起下发，前端不再做数值格式化。
+（2026-10-12 17:54 浏览器实测：探针评分 4/5/3/2 后库里 `rating_avg=4.55`，
+详情页显示 `4.5 评分 / 3人`，排行榜同一作品显示 `4.70`——那次库里是 `4.70`，两套位数都出现了。）
+
+---
+
+## P3 — 删掉最后一条评分后，作品汇总分不会被清零（当前无触发路径，属埋雷）
+
+`RatingService.recalculateRatingAvg()` 开头是 `if (all.isEmpty()) return;`：
+一个作品的评分被删光时直接返回，`rating_avg` / `rating_count` 保留删除前的旧值，
+于是页面会继续显示一个已经没有任何评分支撑的分数。
+
+现在**触发不到**——`RatingController` 只有 `POST /ratings` 和
+`GET /ratings/submissions/{id}/mine`，没有删除评分的接口，评分行只能由 DBA 手工删。
+但将来只要加了「删除违规评分」或「注销账号时清理其数据」，就会立刻显形。
+建议把 early-return 改成「空则写 `rating_avg=0, rating_count=0`」。
+
+（2026-10-12 18:02 清理 UI 实测探针时是按同一公式在库外手工重算的，
+正因为这段代码在「还剩评分」时是对的、在「一条不剩」时是错的。）
 
 ---
 

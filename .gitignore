@@ -55,7 +55,10 @@ id_rsa*
 secrets/
 
 # ===== 运行时数据 =====
-storage/
+# 必须带前导斜杠锚定到仓库根：不锚定的 storage/ 会匹配任意层级的同名目录，
+# 曾把 backend/src/main/java/.../integration/storage/ 下的两个必需源文件一起吞掉，
+# 导致干净克隆出来的仓库根本编译不过（缺 StorageService / LocalStorageService）。
+/storage/
 backend/storage/
 *.sqlite
 *.db
