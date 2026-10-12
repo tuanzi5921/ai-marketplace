@@ -8,6 +8,7 @@ import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.common.BizException;
 import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.dto.SubmissionCreateDTO;
+import com.company.ai.marketplace.dto.SubmissionVO;
 import com.company.ai.marketplace.entity.*;
 import com.company.ai.marketplace.integration.storage.StorageService;
 import com.company.ai.marketplace.mapper.*;
@@ -35,6 +36,7 @@ public class SubmissionService {
     private final PointService pointService;
     private final AuditService auditService;
     private final AuthService authService;
+    private final SubmissionVoAssembler voAssembler;
 
     /**
      * 提交作品（上传文件 + 建主记录）。
@@ -105,44 +107,47 @@ public class SubmissionService {
     /**
      * 分页查询已发布作品列表（公开浏览）。
      */
-    public PageResult<MpSubmission> listPublished(int page, int size, String type, String domain) {
+    public PageResult<SubmissionVO> listPublished(int page, int size, String type, String domain) {
         LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
         w.eq(MpSubmission::getStatus, "PUBLISHED");
         if (StrUtil.isNotBlank(type)) w.eq(MpSubmission::getType, type);
         if (StrUtil.isNotBlank(domain)) w.eq(MpSubmission::getBusinessDomain, domain);
         w.orderByDesc(MpSubmission::getDownloadCount);
-        return PageResult.from(submissionMapper.selectPage(new Page<>(page, size), w));
+        Page<MpSubmission> p = submissionMapper.selectPage(new Page<>(page, size), w);
+        return PageResult.of(p, voAssembler.toVOList(p.getRecords()));
     }
 
     /**
      * 查询当前登录用户的作品（不限状态）。
      */
-    public PageResult<MpSubmission> listMine(Long userId, int page, int size) {
+    public PageResult<SubmissionVO> listMine(Long userId, int page, int size) {
         LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
         w.eq(MpSubmission::getAuthorId, userId)
                 .orderByDesc(MpSubmission::getId);
-        return PageResult.from(submissionMapper.selectPage(new Page<>(page, size), w));
+        Page<MpSubmission> p = submissionMapper.selectPage(new Page<>(page, size), w);
+        return PageResult.of(p, voAssembler.toVOList(p.getRecords()));
     }
 
     /**
      * 管理端：全量作品列表（含所有状态，支持状态/类型筛选）。仅 OPERATOR / ADMIN。
      */
-    public PageResult<MpSubmission> adminList(int page, int size, String status, String type) {
+    public PageResult<SubmissionVO> adminList(int page, int size, String status, String type) {
         authService.requireAnyRole("OPERATOR", "ADMIN");
         LambdaQueryWrapper<MpSubmission> w = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(status)) w.eq(MpSubmission::getStatus, status);
         if (StrUtil.isNotBlank(type)) w.eq(MpSubmission::getType, type);
         w.orderByDesc(MpSubmission::getCreatedAt);
-        return PageResult.from(submissionMapper.selectPage(new Page<>(page, size), w));
+        Page<MpSubmission> p = submissionMapper.selectPage(new Page<>(page, size), w);
+        return PageResult.of(p, voAssembler.toVOList(p.getRecords()));
     }
 
     /**
      * 查询作品详情。
      */
-    public MpSubmission detail(Long id) {
+    public SubmissionVO detail(Long id) {
         MpSubmission sub = submissionMapper.selectById(id);
         if (sub == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
-        return sub;
+        return voAssembler.toVO(sub);
     }
 
     /**

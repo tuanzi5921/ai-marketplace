@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.common.BizException;
+import com.company.ai.marketplace.dto.MyRatingVO;
 import com.company.ai.marketplace.dto.RatingDTO;
 import com.company.ai.marketplace.entity.*;
 import com.company.ai.marketplace.mapper.*;
@@ -97,11 +98,42 @@ public class RatingService {
     }
 
     /**
+     * 查当前用户对某作品的评分，附带该作品的评分汇总。
+     * <p>未评过时 {@code rated=false}、四个维度为 null，汇总字段照常返回，
+     * 前端不必为了显示平均分再打一次详情接口。
+     */
+    public MyRatingVO myRating(Long submissionId) {
+        LoginUser current = ThreadLocalContext.get();
+
+        MpSubmission sub = submissionMapper.selectById(submissionId);
+        if (sub == null) throw new BizException(ErrorCode.RESOURCE_NOT_FOUND);
+
+        MyRatingVO vo = new MyRatingVO();
+        vo.setSubmissionId(submissionId);
+        vo.setAvgScore(sub.getRatingAvg());
+        vo.setRaterCount(sub.getRatingCount());
+
+        MpRating mine = ratingMapper.selectOne(new LambdaQueryWrapper<MpRating>()
+                .eq(MpRating::getUserId, current.getId())
+                .eq(MpRating::getSubmissionId, submissionId));
+        if (mine != null) {
+            vo.setRated(true);
+            vo.setEaseOfUse(mine.getEaseOfUse());
+            vo.setBusinessValue(mine.getBusinessValue());
+            vo.setTechQuality(mine.getTechQuality());
+            vo.setInnovation(mine.getInnovation());
+            vo.setCommentText(mine.getCommentText());
+            vo.setRatedByRole(mine.getRatedByRole());
+            vo.setRatedAt(mine.getRatedAt());
+        }
+        return vo;
+    }
+
+    /**
      * 重新计算作品的综合评分（评委 3 + 员工 7 权重）。
      * <p>4 维度各自取评委均值 × 0.3 + 员工均值 × 0.7，再 4 维度取均值。
      */
-    void recalculateRatingAvg(Long submissionId) {
-        List<MpRating> all = ratingMapper.selectList(new LambdaQueryWrapper<MpRating>()
+    void recalculateRatingAvg(Long submissionId) {        List<MpRating> all = ratingMapper.selectList(new LambdaQueryWrapper<MpRating>()
                 .eq(MpRating::getSubmissionId, submissionId));
 
         if (all.isEmpty()) return;

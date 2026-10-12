@@ -2,7 +2,7 @@ package com.company.ai.marketplace.controller;
 
 import com.company.ai.marketplace.common.Result;
 import com.company.ai.marketplace.dto.PageResult;
-import com.company.ai.marketplace.entity.MpSubmission;
+import com.company.ai.marketplace.dto.SubmissionVO;
 import com.company.ai.marketplace.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +25,7 @@ public class ReviewController {
 
     /** 待审队列 */
     @GetMapping("/pending")
-    public Result<PageResult<MpSubmission>> pending(
+    public Result<PageResult<SubmissionVO>> pending(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return Result.ok(reviewService.pendingQueue(page, size));

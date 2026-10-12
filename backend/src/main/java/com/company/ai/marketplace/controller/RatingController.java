@@ -1,6 +1,7 @@
 package com.company.ai.marketplace.controller;
 
 import com.company.ai.marketplace.common.Result;
+import com.company.ai.marketplace.dto.MyRatingVO;
 import com.company.ai.marketplace.dto.RatingDTO;
 import com.company.ai.marketplace.service.RatingService;
 import jakarta.validation.Valid;
@@ -23,5 +24,11 @@ public class RatingController {
     public Result<Void> rate(@Valid @RequestBody RatingDTO dto) {
         ratingService.rate(dto);
         return Result.ok();
+    }
+
+    /** 我对某作品的评分 + 该作品的评分汇总（未评过时 rated=false） */
+    @GetMapping("/submissions/{id}/mine")
+    public Result<MyRatingVO> myRating(@PathVariable Long id) {
+        return Result.ok(ratingService.myRating(id));
     }
 }

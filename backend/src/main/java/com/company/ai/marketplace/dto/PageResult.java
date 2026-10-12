@@ -27,6 +27,19 @@ public class PageResult<T> {
         return result;
     }
 
+    /**
+     * 用已经批量装配好的列表构造分页结果。
+     * <p>装配 VO 时要按批 join 关联表，逐条 {@code Function} 会退化成 N+1，故另开这个入口。
+     */
+    public static <S, T> PageResult<T> of(Page<S> page, List<T> list) {
+        PageResult<T> result = new PageResult<>();
+        result.setList(list);
+        result.setTotal(page.getTotal());
+        result.setPage(page.getCurrent());
+        result.setSize(page.getSize());
+        return result;
+    }
+
     public static <S> PageResult<S> from(Page<S> page) {
         return from(page, Function.identity());
     }

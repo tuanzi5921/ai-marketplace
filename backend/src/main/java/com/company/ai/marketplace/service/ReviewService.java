@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.ai.marketplace.common.ErrorCode;
 import com.company.ai.marketplace.common.BizException;
 import com.company.ai.marketplace.dto.PageResult;
+import com.company.ai.marketplace.dto.SubmissionVO;
 import com.company.ai.marketplace.entity.*;
 import com.company.ai.marketplace.mapper.*;
 import com.company.ai.marketplace.security.LoginUser;
@@ -31,6 +32,7 @@ public class ReviewService {
     private final SysUserMapper userMapper;
     private final AuditService auditService;
     private final AuthService authService;
+    private final SubmissionVoAssembler voAssembler;
 
     /**
      * 人工审核：通过。仅 OPERATOR / ADMIN / JUDGE 可操作。
@@ -53,13 +55,13 @@ public class ReviewService {
     /**
      * 待审队列分页。仅 OPERATOR / ADMIN / JUDGE 可查看。
      */
-    public PageResult<MpSubmission> pendingQueue(int page, int size) {
+    public PageResult<SubmissionVO> pendingQueue(int page, int size) {
         authService.requireAnyRole("OPERATOR", "ADMIN", "JUDGE");
         Page<MpSubmission> p = submissionMapper.selectPage(new Page<>(page, size),
                 new LambdaQueryWrapper<MpSubmission>()
                         .eq(MpSubmission::getStatus, "PENDING")
                         .orderByAsc(MpSubmission::getCreatedAt));
-        return PageResult.from(p);
+        return PageResult.of(p, voAssembler.toVOList(p.getRecords()));
     }
 
     // ====== 内部 ======

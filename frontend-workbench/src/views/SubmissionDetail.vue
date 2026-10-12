@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download, Star, ChatLineRound, Warning, Back } from '@element-plus/icons-vue'
@@ -8,7 +8,7 @@ import {
   download,
   type SubmissionDetail
 } from '@/api/submission'
-import { rate } from '@/api/rating'
+import { rate, myRating as fetchMyRating, type MyRating } from '@/api/rating'
 import {
   listBySubmission,
   create as createComment,
@@ -77,12 +77,37 @@ const ratingRules = {
 }
 const ratingFormRef = ref()
 
+// ============ 我的评分 ============
+const myRating = ref<MyRating | null>(null)
+
+// 已评过的四个维度，用于在详情页只读回显
+const myDimensions = computed(() => {
+  const r = myRating.value
+  if (!r?.rated) return []
+  return [
+    { label: '易用性', value: r.easeOfUse || 0 },
+    { label: '业务价值', value: r.businessValue || 0 },
+    { label: '技术质量', value: r.techQuality || 0 },
+    { label: '创新性', value: r.innovation || 0 }
+  ]
+})
+
+async function loadMyRating() {
+  try {
+    myRating.value = await fetchMyRating(submissionId)
+  } catch {
+    // request 拦截器已提示
+  }
+}
+
 function openRating() {
-  ratingForm.easeOfUse = 0
-  ratingForm.businessValue = 0
-  ratingForm.techQuality = 0
-  ratingForm.innovation = 0
-  ratingForm.commentText = ''
+  const r = myRating.value
+  // 已评过就用上次的分数预填，改分而不是从零重打
+  ratingForm.easeOfUse = r?.easeOfUse || 0
+  ratingForm.businessValue = r?.businessValue || 0
+  ratingForm.techQuality = r?.techQuality || 0
+  ratingForm.innovation = r?.innovation || 0
+  ratingForm.commentText = r?.commentText || ''
   ratingVisible.value = true
 }
 
@@ -101,6 +126,7 @@ async function submitRating() {
     ElMessage.success('评分成功，感谢您的评价')
     ratingVisible.value = false
     loadDetail()
+    loadMyRating()
     loadComments()
   } catch {
     // request 拦截器已提示
@@ -221,6 +247,7 @@ async function loadDetail() {
 
 onMounted(() => {
   loadDetail()
+  loadMyRating()
   loadComments()
 })
 </script>
@@ -288,7 +315,9 @@ onMounted(() => {
             <el-button type="success" :icon="Download" @click="handleDownload">
               下载作品
             </el-button>
-            <el-button :icon="Star" plain @click="openRating">我要评分</el-button>
+            <el-button :icon="Star" plain @click="openRating">
+              {{ myRating?.rated ? '修改我的评分' : '我要评分' }}
+            </el-button>
           </div>
           <p v-if="data.type === 'SAAS' && data.saasCredentials" class="saas-cred">
             SaaS 访问凭据：{{ data.saasCredentials }}
@@ -325,6 +354,27 @@ onMounted(() => {
           <div class="block__tags">
             <el-tag v-for="t in data.tags" :key="t" type="info" effect="plain">{{ t }}</el-tag>
           </div>
+        </section>
+        <section class="block">
+          <h3 class="block__title">我的评分</h3>
+          <template v-if="myRating?.rated">
+            <div class="my-rating">
+              <div v-for="d in myDimensions" :key="d.label" class="my-rating__row">
+                <span class="my-rating__label">{{ d.label }}</span>
+                <el-rate :model-value="d.value" disabled />
+              </div>
+            </div>
+            <p v-if="myRating.commentText" class="my-rating__comment">
+              评语：{{ myRating.commentText }}
+            </p>
+            <p class="my-rating__meta">
+              以{{ myRating.ratedByRole === 'JUDGE' ? '评委' : '员工' }}身份计入综合评分
+              <span v-if="myRating.ratedAt"> · {{ myRating.ratedAt }}</span>
+            </p>
+          </template>
+          <p v-else class="my-rating__empty">
+            你还没有为这个作品评分，下载后即可参与评分。
+          </p>
         </section>
       </div>
     </el-card>
@@ -576,6 +626,40 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.my-rating {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 6px 24px;
+  max-width: 640px;
+}
+.my-rating__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.my-rating__label {
+  width: 62px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--brand-muted);
+}
+.my-rating__comment {
+  margin: 12px 0 0;
+  color: var(--brand-text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.my-rating__meta {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--brand-muted);
+}
+.my-rating__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--brand-muted);
 }
 
 .comment-card {

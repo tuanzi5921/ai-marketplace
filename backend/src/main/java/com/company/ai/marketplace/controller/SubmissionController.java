@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.company.ai.marketplace.common.Result;
 import com.company.ai.marketplace.dto.PageResult;
 import com.company.ai.marketplace.dto.SubmissionCreateDTO;
-import com.company.ai.marketplace.entity.MpSubmission;
+import com.company.ai.marketplace.dto.SubmissionVO;
 import com.company.ai.marketplace.entity.MpSubmissionArtifact;
 import com.company.ai.marketplace.integration.storage.StorageService;
 import com.company.ai.marketplace.security.LoginUser;
@@ -42,7 +42,7 @@ public class SubmissionController {
 
     /** 分页查询已发布作品 */
     @GetMapping
-    public Result<PageResult<MpSubmission>> list(
+    public Result<PageResult<SubmissionVO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String type,
@@ -52,7 +52,7 @@ public class SubmissionController {
 
     /** 我的提交（当前登录用户的所有作品，不限状态） */
     @GetMapping("/mine")
-    public Result<PageResult<MpSubmission>> mine(
+    public Result<PageResult<SubmissionVO>> mine(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         LoginUser current = ThreadLocalContext.get();
@@ -61,7 +61,7 @@ public class SubmissionController {
 
     /** 管理端：全量作品列表（含所有状态，支持状态/类型筛选） */
     @GetMapping("/admin")
-    public Result<PageResult<MpSubmission>> adminList(
+    public Result<PageResult<SubmissionVO>> adminList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
@@ -71,7 +71,7 @@ public class SubmissionController {
 
     /** 作品详情 */
     @GetMapping("/{id}")
-    public Result<MpSubmission> detail(@PathVariable Long id) {
+    public Result<SubmissionVO> detail(@PathVariable Long id) {
         return Result.ok(submissionService.detail(id));
     }
 
